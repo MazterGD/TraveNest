@@ -1,0 +1,121 @@
+{
+  "app": {
+    "name": "TravelNest",
+    "tagline": "Your Journey, Our Commitment"
+  },
+  "navigation": {
+    "home": "Home",
+    "search": "Search Buses",
+    "about": "About Us",
+    "contact": "Contact",
+    "howItWorks": "How It Works",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "logout": "Logout"
+  },
+  "home": {
+    "hero": {
+      "title": "Find the Perfect Bus for Your Journey",
+      "subtitle": "Sri Lanka's premier marketplace connecting you with verified bus owners for comfortable group travel",
+      "searchPlaceholder": "Where are you going?",
+      "searchButton": "Search Buses"
+    },
+    "features": {
+      "title": "Why Choose TravelNest?",
+      "transparentPricing": {
+        "title": "Transparent Pricing",
+        "description": "No hidden fees. Compare multiple quotes and choose the best option for your budget."
+      },
+      "verifiedOwners": {
+        "title": "Verified Bus Owners",
+        "description": "All bus owners are verified with proper documentation for your peace of mind."
+      },
+      "easyBooking": {
+        "title": "Easy Online Booking",
+        "description": "Book and pay securely online. Track your booking every step of the way."
+      },
+      "multilingualSupport": {
+        "title": "Multilingual Support",
+        "description": "Platform available in English, Sinhala, and Tamil for your convenience."
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "customer": {
+        "title": "For Customers",
+        "step1": "Search & Request",
+        "step1Desc": "Enter your journey details and request quotations",
+        "step2": "Compare Quotes",
+        "step2Desc": "Compare prices and services from multiple bus owners",
+        "step3": "Book & Pay",
+        "step3Desc": "Choose your preferred option and pay securely online",
+        "step4": "Enjoy Your Trip",
+        "step4Desc": "Travel comfortably with your group"
+      },
+      "owner": {
+        "title": "For Bus Owners",
+        "step1": "Register & Verify",
+        "step1Desc": "Sign up and complete the verification process",
+        "step2": "List Your Fleet",
+        "step2Desc": "Add your vehicles with photos and details",
+        "step3": "Receive Requests",
+        "step3Desc": "Get quotation requests from customers",
+        "step4": "Send Quotes & Earn",
+        "step4Desc": "Respond with competitive quotes and grow your business"
+      }
+    },
+    "stats": {
+      "totalBookings": "Total Bookings",
+      "verifiedOwners": "Verified Owners",
+      "happyCustomers": "Happy Customers",
+      "activeBuses": "Active Buses"
+    },
+    "cta": {
+      "customer": {
+        "title": "Ready to Book Your Next Trip?",
+        "description": "Get started by searching for available buses",
+        "button": "Search Buses"
+      },
+      "owner": {
+        "title": "Own a Bus? Join TravelNest",
+        "description": "Expand your business by listing on our platform",
+        "button": "Register as Owner"
+      }
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "clear": "Clear",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "confirm": "Confirm",
+    "noResults": "No results found",
+    "viewAll": "View All",
+    "learnMore": "Learn More"
+  },
+  "footer": {
+    "description": "Sri Lanka's premier bus rental marketplace",
+    "quickLinks": "Quick Links",
+    "support": "Support",
+    "legal": "Legal",
+    "followUs": "Follow Us",
+    "copyright": "© 2025 TravelNest. All rights reserved.",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "refundPolicy": "Refund Policy"
+  }
+}
