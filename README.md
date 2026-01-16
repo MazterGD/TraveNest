@@ -1,10 +1,51 @@
-# TravelNest 🚌
+# TraveNest 🚌
 
-**Sri Lanka's Premier Bus Rental Marketplace**
+**Sri Lanka's Premier Vehicle Rental Marketplace**
 
-TravelNest is a web-based bus rental marketplace platform designed to connect bus owners with customers seeking group transportation services across Sri Lanka.
+TraveNest is a web-based vehicle rental marketplace platform designed to connect vehicle owners with customers seeking transportation services across Sri Lanka.
 
-## 🌟 Features
+## 🏗️ Project Architecture
+
+This is a **monorepo** managed with npm workspaces:
+
+```
+travenest/
+├── apps/
+│   ├── web/                 # Next.js 16 frontend
+│   └── api/                 # Express.js backend API
+├── packages/
+│   ├── database/            # Prisma ORM & database schema
+│   └── shared-types/        # Shared TypeScript types
+└── package.json             # Root package.json with workspaces
+```
+
+## 🚀 Quick Start
+
+```bash
+# Install all dependencies
+npm install
+
+# Set up environment variables
+cp apps/api/.env.example apps/api/.env
+# Edit apps/api/.env with your database credentials
+
+# Set up the database
+npm run db:push      # Push schema to database
+npm run db:seed      # Seed demo data (optional)
+
+# Start development (frontend + backend)
+npm run dev
+```
+
+| Script              | Description                             |
+| ------------------- | --------------------------------------- |
+| `npm run dev`       | Start all services (web:3000, api:5000) |
+| `npm run dev:web`   | Start frontend only                     |
+| `npm run dev:api`   | Start backend only                      |
+| `npm run build`     | Build all workspaces                    |
+| `npm run db:studio` | Open Prisma Studio                      |
+
+## ✨ Features
 
 ### For Customers
 

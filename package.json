@@ -2,32 +2,33 @@
   "name": "travenest",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@ducanh2912/next-pwa": "^10.2.9",
-    "clsx": "^2.1.1",
-    "next": "^16.1.2",
-    "next-intl": "^4.5.3",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "react-icons": "^5.5.0",
-    "tailwind-merge": "^3.4.0",
-    "zustand": "^5.0.8"
+    "dev": "npm run dev:web & npm run dev:api",
+    "dev:web": "npm run dev -w @travenest/web",
+    "dev:api": "npm run dev -w @travenest/api",
+    "build": "npm run build --workspaces --if-present",
+    "build:web": "npm run build -w @travenest/web",
+    "build:api": "npm run build -w @travenest/api",
+    "start": "npm run start --workspaces --if-present",
+    "start:web": "npm run start -w @travenest/web",
+    "start:api": "npm run start -w @travenest/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "npm run generate -w @travenest/database",
+    "db:push": "npm run push -w @travenest/database",
+    "db:migrate": "npm run migrate -w @travenest/database",
+    "db:seed": "npm run seed -w @travenest/database",
+    "db:studio": "npm run studio -w @travenest/database",
+    "clean": "rimraf node_modules apps/*/node_modules packages/*/node_modules apps/*/.next apps/*/dist packages/*/dist"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "baseline-browser-mapping": "^2.9.14",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.3",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "rimraf": "^5.0.5",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

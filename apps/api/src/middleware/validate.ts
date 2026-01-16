@@ -1,0 +1,62 @@
+import { type Request, type Response, type NextFunction } from "express";
+import { type AnyZodObject, type ZodError } from "zod";
+import { ApiError } from "./errorHandler.js";
+
+// Validation middleware factory
+export const validate = (schema: AnyZodObject) => {
+  return async (
+    req: Request,
+    _res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      await schema.parseAsync({
+        body: req.body,
+        query: req.query,
+        params: req.params,
+      });
+      next();
+    } catch (error) {
+      const zodError = error as ZodError;
+      const errorMessages = zodError.errors.map((e) => ({
+        field: e.path.join("."),
+        message: e.message,
+      }));
+
+      next(new ApiError(400, "Validation failed", true));
+    }
+  };
+};
+
+// Sanitize request body - remove undefined and null values
+export const sanitizeBody = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
+  if (req.body && typeof req.body === "object") {
+    req.body = Object.fromEntries(
+      Object.entries(req.body).filter(
+        ([_, value]) => value !== undefined && value !== null && value !== ""
+      )
+    );
+  }
+  next();
+};
+
+// Trim string fields in request body
+export const trimStrings = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
+  if (req.body && typeof req.body === "object") {
+    req.body = Object.fromEntries(
+      Object.entries(req.body).map(([key, value]) => [
+        key,
+        typeof value === "string" ? value.trim() : value,
+      ])
+    );
+  }
+  next();
+};

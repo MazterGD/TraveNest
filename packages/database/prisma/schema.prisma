@@ -1,0 +1,281 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  CUSTOMER
+  VEHICLE_OWNER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum QuotationStatus {
+  PENDING
+  RESPONDED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum VehicleType {
+  CAR
+  VAN
+  MINI_BUS
+  SUV
+  BUS
+  MOTORCYCLE
+}
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_VERIFICATION
+  UNDER_MAINTENANCE
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  HYBRID
+}
+
+enum TransmissionType {
+  AUTOMATIC
+  MANUAL
+}
+
+// Models
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  avatar        String?
+  role          UserRole   @default(CUSTOMER)
+  status        UserStatus @default(ACTIVE)
+  isVerified    Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  vehicles      Vehicle[]
+  bookings      Booking[]       @relation("CustomerBookings")
+  quotationRequests Quotation[] @relation("CustomerQuotations")
+  reviews       Review[]
+  notifications Notification[]
+  payments      Payment[]
+
+  @@map("users")
+}
+
+model Vehicle {
+  id              String           @id @default(cuid())
+  ownerId         String
+  name            String
+  description     String?
+  type            VehicleType
+  brand           String
+  model           String
+  year            Int
+  licensePlate    String           @unique
+  color           String?
+  seats           Int
+  doors           Int?
+  fuelType        FuelType
+  transmission    TransmissionType
+  mileage         Int?
+  features        String[]
+  images          String[]
+  pricePerDay     Float
+  pricePerHour    Float?
+  location        String
+  latitude        Float?
+  longitude       Float?
+  isAvailable     Boolean          @default(true)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings        Booking[]
+  quotations      Quotation[]
+  reviews         Review[]
+  availability    VehicleAvailability[]
+
+  @@index([ownerId])
+  @@index([type])
+  @@index([location])
+  @@map("vehicles")
+}
+
+model VehicleAvailability {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  startDate   DateTime
+  endDate     DateTime
+  isBlocked   Boolean  @default(false)
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_availability")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  customerId      String
+  vehicleId       String
+  startDate       DateTime
+  endDate         DateTime
+  pickupLocation  String
+  dropoffLocation String?
+  totalAmount     Float
+  status          BookingStatus @default(PENDING)
+  notes           String?
+  cancelReason    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  customer        User          @relation("CustomerBookings", fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle         Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  payment         Payment?
+  review          Review?
+
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([status])
+  @@map("bookings")
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  customerId      String
+  vehicleId       String?
+  vehicleType     VehicleType?
+  startDate       DateTime
+  endDate         DateTime
+  pickupLocation  String
+  dropoffLocation String?
+  passengerCount  Int?
+  specialRequests String?
+  status          QuotationStatus @default(PENDING)
+  
+  // Owner response
+  quotedPrice     Float?
+  ownerMessage    String?
+  validUntil      DateTime?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  customer        User            @relation("CustomerQuotations", fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle         Vehicle?        @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([status])
+  @@map("quotations")
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  customerId    String
+  vehicleId     String
+  bookingId     String   @unique
+  rating        Int      // 1-5
+  comment       String?
+  ownerResponse String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  customer      User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([vehicleId])
+  @@map("reviews")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  userId            String
+  bookingId         String        @unique
+  amount            Float
+  currency          String        @default("LKR")
+  status            PaymentStatus @default(PENDING)
+  method            String?
+  stripePaymentId   String?       @unique
+  stripeCustomerId  String?
+  refundAmount      Float?
+  refundReason      String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking           Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // booking_confirmed, payment_received, review_received, etc.
+  title       String
+  message     String
+  data        Json?    // Additional data (bookingId, vehicleId, etc.)
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
