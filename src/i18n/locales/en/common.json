@@ -85,6 +85,328 @@
       }
     }
   },
+  "search": {
+    "title": "Find Your Perfect Bus",
+    "subtitle": "Search from hundreds of verified buses across Sri Lanka",
+    "filters": {
+      "title": "Filters",
+      "vehicleType": "Vehicle Type",
+      "capacity": "Passenger Capacity",
+      "acType": "AC Type",
+      "priceRange": "Price Range",
+      "amenities": "Amenities",
+      "district": "District",
+      "clearAll": "Clear All"
+    },
+    "sort": {
+      "label": "Sort by",
+      "priceAsc": "Price: Low to High",
+      "priceDesc": "Price: High to Low",
+      "rating": "Highest Rated",
+      "newest": "Newest First"
+    },
+    "results": "results found",
+    "noResults": "No buses found matching your criteria",
+    "adjustFilters": "Try adjusting your filters or search in a different area"
+  },
+  "about": {
+    "hero": {
+      "title": "About TravelNest",
+      "subtitle": "Connecting travelers with trusted bus owners since 2024"
+    },
+    "mission": {
+      "title": "Our Mission",
+      "description": "To revolutionize group travel in Sri Lanka by creating a transparent, efficient, and trustworthy marketplace that connects travelers with verified bus owners, ensuring safe, comfortable, and affordable journeys for everyone."
+    },
+    "vision": {
+      "title": "Our Vision",
+      "description": "To become Sri Lanka's most trusted platform for bus rentals, setting new standards for transparency, safety, and customer satisfaction in the transportation industry."
+    },
+    "values": {
+      "title": "Our Values",
+      "transparency": {
+        "title": "Transparency",
+        "description": "Clear pricing with no hidden fees"
+      },
+      "safety": {
+        "title": "Safety",
+        "description": "Verified owners and maintained vehicles"
+      },
+      "reliability": {
+        "title": "Reliability",
+        "description": "Consistent service you can depend on"
+      },
+      "innovation": {
+        "title": "Innovation",
+        "description": "Modern solutions for traditional travel"
+      }
+    },
+    "team": {
+      "title": "Our Team",
+      "description": "A passionate team dedicated to transforming the transportation industry"
+    }
+  },
+  "contact": {
+    "hero": {
+      "title": "Contact Us",
+      "subtitle": "We're here to help with any questions or concerns"
+    },
+    "form": {
+      "name": "Your Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "subject": "Subject",
+      "message": "Your Message",
+      "submit": "Send Message",
+      "success": "Message sent successfully! We'll get back to you soon.",
+      "error": "Failed to send message. Please try again."
+    },
+    "info": {
+      "title": "Get in Touch",
+      "address": {
+        "title": "Address",
+        "value": "123 Galle Road, Colombo 03, Sri Lanka"
+      },
+      "email": {
+        "title": "Email",
+        "value": "support@travelnest.lk"
+      },
+      "phone": {
+        "title": "Phone",
+        "value": "+94 11 234 5678"
+      },
+      "hours": {
+        "title": "Business Hours",
+        "value": "Mon - Fri: 9:00 AM - 6:00 PM"
+      }
+    }
+  },
+  "howItWorks": {
+    "hero": {
+      "title": "How TravelNest Works",
+      "subtitle": "Simple steps to book your perfect bus or grow your transport business"
+    },
+    "customer": {
+      "title": "For Customers",
+      "description": "Book a bus in 4 simple steps",
+      "steps": {
+        "search": {
+          "title": "Search & Browse",
+          "description": "Enter your travel details including pickup location, destination, dates, and passenger count. Browse available buses that match your requirements."
+        },
+        "request": {
+          "title": "Request Quotations",
+          "description": "Submit a quotation request to multiple bus owners at once. Provide any special requirements or preferences for your trip."
+        },
+        "compare": {
+          "title": "Compare & Choose",
+          "description": "Review detailed quotations from verified bus owners. Compare prices, amenities, ratings, and choose the best option."
+        },
+        "book": {
+          "title": "Book & Travel",
+          "description": "Confirm your booking with secure online payment. Receive confirmation and enjoy your comfortable journey."
+        }
+      }
+    },
+    "owner": {
+      "title": "For Bus Owners",
+      "description": "Grow your business in 4 simple steps",
+      "steps": {
+        "register": {
+          "title": "Register & Verify",
+          "description": "Create your account and complete the verification process. Submit required documents for approval."
+        },
+        "list": {
+          "title": "List Your Fleet",
+          "description": "Add your vehicles with detailed information, photos, and pricing. Showcase amenities and features."
+        },
+        "respond": {
+          "title": "Respond to Requests",
+          "description": "Receive quotation requests from customers. Review trip details and send competitive quotes."
+        },
+        "earn": {
+          "title": "Earn & Grow",
+          "description": "Get bookings, provide excellent service, and build your reputation. Grow your business with repeat customers."
+        }
+      }
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "subtitle": "Sign in to your account to continue",
+      "email": "Email Address",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "register": "Register now"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Join TravelNest to start booking or listing buses",
+      "accountType": "I want to",
+      "customer": "Book Buses",
+      "owner": "List My Buses",
+      "name": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "terms": "I agree to the",
+      "termsLink": "Terms of Service",
+      "and": "and",
+      "privacyLink": "Privacy Policy",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "login": "Sign in"
+    },
+    "errors": {
+      "invalidEmail": "Please enter a valid email address",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "required": "This field is required"
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Find answers to common questions about TravelNest",
+    "categories": {
+      "general": "General",
+      "booking": "Booking",
+      "payment": "Payment",
+      "owners": "For Bus Owners"
+    },
+    "questions": {
+      "whatIs": {
+        "question": "What is TravelNest?",
+        "answer": "TravelNest is Sri Lanka's premier online marketplace connecting travelers with verified bus owners. Our platform makes it easy to search, compare, and book buses for group travel, weddings, corporate events, pilgrimages, and more."
+      },
+      "howToBook": {
+        "question": "How do I book a bus?",
+        "answer": "Simply search for buses based on your travel dates and requirements, request quotations from multiple owners, compare prices and services, and book your preferred option with secure online payment."
+      },
+      "payment": {
+        "question": "What payment methods are accepted?",
+        "answer": "We accept credit/debit cards, bank transfers, and popular mobile payment options. All transactions are secured with industry-standard encryption."
+      },
+      "cancellation": {
+        "question": "What is the cancellation policy?",
+        "answer": "Cancellation policies vary by bus owner. Generally, cancellations made 7+ days before the trip receive a full refund, 3-7 days receive 50%, and less than 3 days may not be eligible for refund."
+      },
+      "verification": {
+        "question": "How are bus owners verified?",
+        "answer": "All bus owners undergo a thorough verification process including document verification, vehicle inspection, license validation, and background checks to ensure safety and reliability."
+      },
+      "becomeOwner": {
+        "question": "How can I list my bus on TravelNest?",
+        "answer": "Register as a bus owner, complete the verification process by submitting required documents, add your vehicles with photos and details, and start receiving quotation requests from customers."
+      }
+    },
+    "stillHaveQuestions": "Still have questions?",
+    "contactUs": "Contact our support team"
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "Last updated",
+      "sections": {
+        "intro": {
+          "title": "Introduction",
+          "content": "TravelNest ('we', 'our', or 'us') is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform."
+        },
+        "collection": {
+          "title": "Information We Collect",
+          "content": "We collect information you provide directly, including name, email, phone number, payment information, and travel preferences. We also automatically collect usage data, device information, and location data when you use our services."
+        },
+        "use": {
+          "title": "How We Use Your Information",
+          "content": "We use your information to provide and improve our services, process bookings and payments, communicate with you, ensure safety and security, and comply with legal obligations."
+        },
+        "sharing": {
+          "title": "Information Sharing",
+          "content": "We share your information with bus owners to facilitate bookings, payment processors for transactions, and service providers who assist our operations. We do not sell your personal information."
+        },
+        "security": {
+          "title": "Data Security",
+          "content": "We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction."
+        },
+        "rights": {
+          "title": "Your Rights",
+          "content": "You have the right to access, correct, or delete your personal information. You may also object to processing or request data portability. Contact us to exercise these rights."
+        },
+        "contact": {
+          "title": "Contact Us",
+          "content": "For privacy-related inquiries, please contact us at privacy@travelnest.lk"
+        }
+      }
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "lastUpdated": "Last updated",
+      "sections": {
+        "acceptance": {
+          "title": "Acceptance of Terms",
+          "content": "By accessing or using TravelNest, you agree to be bound by these Terms of Service. If you disagree with any part, you may not access the service."
+        },
+        "services": {
+          "title": "Our Services",
+          "content": "TravelNest provides an online marketplace connecting travelers with bus owners. We facilitate the booking process but are not responsible for the actual transportation services provided by bus owners."
+        },
+        "accounts": {
+          "title": "User Accounts",
+          "content": "You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account. You must provide accurate information and promptly update it."
+        },
+        "booking": {
+          "title": "Booking and Payments",
+          "content": "Bookings are subject to availability and acceptance by bus owners. Payments are processed securely through our platform. Refunds are subject to the cancellation policy of each booking."
+        },
+        "conduct": {
+          "title": "User Conduct",
+          "content": "Users must not use the platform for illegal purposes, harass others, post false information, or interfere with platform operations. Violations may result in account termination."
+        },
+        "liability": {
+          "title": "Limitation of Liability",
+          "content": "TravelNest is not liable for damages arising from the use of our platform or transportation services provided by bus owners. Our total liability is limited to fees paid to us."
+        },
+        "changes": {
+          "title": "Changes to Terms",
+          "content": "We may modify these terms at any time. Continued use after changes constitutes acceptance. We will notify users of significant changes via email or platform notice."
+        }
+      }
+    },
+    "refund": {
+      "title": "Refund Policy",
+      "lastUpdated": "Last updated",
+      "sections": {
+        "overview": {
+          "title": "Overview",
+          "content": "This policy outlines the conditions under which refunds are provided for bookings made through TravelNest. Refund eligibility depends on the timing of cancellation and the specific bus owner's policy."
+        },
+        "eligibility": {
+          "title": "Refund Eligibility",
+          "content": "Cancellations made 7 or more days before the trip: Full refund minus processing fees. 3-7 days before: 50% refund. Less than 3 days: Generally non-refundable unless otherwise specified."
+        },
+        "process": {
+          "title": "Refund Process",
+          "content": "To request a refund, cancel your booking through your account dashboard. Approved refunds are processed within 7-10 business days to the original payment method."
+        },
+        "exceptions": {
+          "title": "Exceptions",
+          "content": "Full refunds are provided when: The bus owner cancels the booking, the vehicle provided differs significantly from the description, or there are safety concerns verified by our team."
+        },
+        "disputes": {
+          "title": "Disputes",
+          "content": "If you disagree with a refund decision, contact our support team within 14 days. We will review your case and make a fair determination based on available evidence."
+        },
+        "contact": {
+          "title": "Contact",
+          "content": "For refund inquiries, contact support@travelnest.lk or call +94 11 234 5678"
+        }
+      }
+    }
+  },
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
@@ -105,7 +427,12 @@
     "confirm": "Confirm",
     "noResults": "No results found",
     "viewAll": "View All",
-    "learnMore": "Learn More"
+    "learnMore": "Learn More",
+    "getStarted": "Get Started",
+    "readMore": "Read More",
+    "perDay": "per day",
+    "perKm": "per km",
+    "passengers": "passengers"
   },
   "footer": {
     "description": "Sri Lanka's premier bus rental marketplace",

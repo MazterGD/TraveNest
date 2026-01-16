@@ -65,7 +65,7 @@ export default function Home() {
   return (
     <MainLayout>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-20 sm:py-32">
+      <section className="relative bg-gradient-to-br from-muted via-background to-accent/20 py-20 sm:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
@@ -77,13 +77,13 @@ export default function Home() {
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
                 href="/en/search"
-                className="rounded-md bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+                className="rounded-md bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-secondary transition-colors"
               >
                 {t("hero.searchButton")}
               </Link>
               <Link
                 href="/en/how-it-works"
-                className="text-base font-semibold leading-7 text-foreground hover:text-primary transition-colors"
+                className="text-base font-semibold leading-7 text-foreground hover:text-accent transition-colors"
               >
                 {tCommon("learnMore")} <span aria-hidden="true">→</span>
               </Link>
@@ -139,12 +139,15 @@ export default function Home() {
             {customerSteps.map((step, index) => {
               const Icon = step.icon;
               return (
-                <div key={index} className="relative flex flex-col items-center text-center">
+                <div
+                  key={index}
+                  className="relative flex flex-col items-center text-center"
+                >
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-bold">
                     {index + 1}
                   </div>
-                  <div className="mt-4 flex h-12 w-12 items-center justify-center rounded-lg bg-secondary/10">
-                    <Icon className="h-6 w-6 text-secondary" />
+                  <div className="mt-4 flex h-12 w-12 items-center justify-center rounded-lg bg-accent/30">
+                    <Icon className="h-6 w-6 text-primary" />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-foreground">
                     {step.title}
@@ -171,7 +174,7 @@ export default function Home() {
           <div className="mt-10">
             <Link
               href="/en/search"
-              className="inline-flex items-center justify-center rounded-md bg-white px-8 py-4 text-base font-semibold text-primary shadow-sm hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center justify-center rounded-md bg-accent px-8 py-4 text-base font-semibold text-primary shadow-sm hover:bg-accent/90 transition-colors"
             >
               {t("cta.customer.button")}
             </Link>

@@ -1,34 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  /* TravelNest Brand Colors */
-  --primary: 14 100% 47%; /* Deep Orange - Main brand color */
+  /* TravelNest Brand Colors - Blue Palette */
+  --primary: 199 100% 21%;
+  /* #00476B - Deep Blue - Main brand color */
   --primary-foreground: 0 0% 100%;
-  --secondary: 210 100% 45%; /* Blue - Trust and reliability */
+  --secondary: 200 46% 34%;
+  /* #2F6280 - Slate Blue */
   --secondary-foreground: 0 0% 100%;
-  --accent: 45 93% 47%; /* Gold/Yellow - Highlights */
-  --accent-foreground: 0 0% 0%;
+  --accent: 197 82% 68%;
+  /* #6ACAF0 - Medium Blue - Highlights */
+  --accent-foreground: 199 100% 21%;
 
   /* Neutral Colors */
   --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  /* White */
+  --foreground: 199 100% 21%;
+  /* Dark blue text */
+  --muted: 199 74% 88%;
+  /* #C9E9F8 - Light blue */
+  --muted-foreground: 200 46% 34%;
+  /* #2F6280 */
+  --card: 195 79% 96%;
+  /* Very light blue tint */
+  --card-foreground: 199 100% 21%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 199 100% 21%;
 
   /* Borders and Inputs */
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 14 100% 47%;
+  --border: 199 74% 88%;
+  /* #C9E9F8 */
+  --input: 199 74% 88%;
+  --ring: 197 82% 68%;
+  /* Accent blue for focus rings */
 
   /* Status Colors */
   --success: 142 71% 45%;
+  /* Green */
+  --success-foreground: 0 0% 100%;
   --warning: 38 92% 50%;
+  /* Orange/Yellow */
+  --warning-foreground: 0 0% 0%;
   --error: 0 84% 60%;
-  --info: 199 89% 48%;
+  /* Red */
+  --error-foreground: 0 0% 100%;
+  --info: 197 82% 68%;
+  /* Accent blue */
+  --info-foreground: 199 100% 21%;
 
   /* Border Radius */
   --radius: 0.5rem;
@@ -66,14 +84,20 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
+    --background: 199 100% 10%;
+    /* Very dark blue */
+    --foreground: 195 79% 92%;
+    /* Light blue text */
+    --muted: 200 46% 20%;
+    /* Darker muted */
+    --muted-foreground: 199 74% 75%;
+    --card: 199 100% 14%;
+    /* Dark blue card */
+    --card-foreground: 195 79% 92%;
+    --border: 200 46% 25%;
+    --input: 200 46% 25%;
+    --popover: 199 100% 12%;
+    --popover-foreground: 195 79% 92%;
   }
 }
 

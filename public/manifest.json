@@ -2,8 +2,8 @@
   "name": "TravelNest - Bus Rental Marketplace",
   "short_name": "TravelNest",
   "description": "Sri Lanka's premier bus rental marketplace connecting bus owners with customers",
-  "theme_color": "#EF5B0C",
-  "background_color": "#ffffff",
+  "theme_color": "#00476B",
+  "background_color": "#DAF3FB",
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
@@ -22,7 +22,11 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["travel", "transportation", "business"],
+  "categories": [
+    "travel",
+    "transportation",
+    "business"
+  ],
   "lang": "en",
   "dir": "ltr",
   "prefer_related_applications": false
