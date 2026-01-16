@@ -10,8 +10,10 @@ import {
   CardHeader,
   CardTitle,
   Avatar,
+  StarRating,
 } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
+import { formatDate } from "@/lib/utils/formatters";
 
 interface ReviewInput {
   bookingId: string;
@@ -88,37 +90,18 @@ export function ReviewForm({
             <label className="block text-sm font-medium text-foreground">
               {t("yourRating")}
             </label>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => {
-                    setRating(star);
-                    setError("");
-                  }}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  className="p-1 focus:outline-none focus:ring-2 focus:ring-primary rounded"
-                >
-                  <svg
-                    className={cn(
-                      "w-8 h-8 transition-colors",
-                      (hoverRating || rating) >= star
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-muted stroke-current fill-none"
-                    )}
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-                    />
-                  </svg>
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <StarRating
+                rating={rating}
+                size="lg"
+                interactive
+                onChange={(newRating) => {
+                  setRating(newRating);
+                  setError("");
+                }}
+                hoverRating={hoverRating}
+                onHoverChange={setHoverRating}
+              />
               {(hoverRating || rating) > 0 && (
                 <span className="ml-2 text-sm text-muted-foreground">
                   {ratingLabels[hoverRating || rating]}
@@ -182,14 +165,6 @@ export function ReviewDisplay({
 }: ReviewDisplayProps) {
   const t = useTranslations("review");
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-LK", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   return (
     <div className="space-y-4">
       {/* Review Header */}
@@ -205,32 +180,12 @@ export function ReviewDisplay({
               {review.customerName}
             </h4>
             <span className="text-sm text-muted-foreground">
-              {formatDate(review.createdAt)}
+              {formatDate(review.createdAt, "long")}
             </span>
           </div>
 
           {/* Star Rating */}
-          <div className="flex items-center gap-1 mt-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <svg
-                key={star}
-                className={cn(
-                  "w-4 h-4",
-                  review.rating >= star
-                    ? "text-yellow-400 fill-yellow-400"
-                    : "text-muted fill-none"
-                )}
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-                />
-              </svg>
-            ))}
-          </div>
+          <StarRating rating={review.rating} size="sm" className="mt-1" />
         </div>
       </div>
 
@@ -246,7 +201,7 @@ export function ReviewDisplay({
             </span>
             {review.ownerResponseDate && (
               <span className="text-xs text-muted-foreground">
-                • {formatDate(review.ownerResponseDate)}
+                • {formatDate(review.ownerResponseDate, "long")}
               </span>
             )}
           </div>

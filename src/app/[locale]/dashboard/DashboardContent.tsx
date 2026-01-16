@@ -12,10 +12,22 @@ import {
   SkeletonDashboard,
   EmptyState,
   EmptyBoxIcon,
+  StatCard,
+  QuickActionCard,
+  QuickActionGrid,
+  CalendarIcon,
+  ClipboardIcon,
+  CheckCircleIcon,
+  CurrencyIcon,
+  PlusIcon,
+  ChevronRightIcon,
+  StarIcon,
+  UserIcon,
 } from "@/components/ui";
 import { BookingCard } from "@/components/features/customer";
 import { BookingStatus, PaymentStatus } from "@/types";
 import type { BookingWithDetails, QuotationRequest } from "@/store";
+import { formatCurrency } from "@/lib/utils/formatters";
 
 // Mock data for demonstration
 const mockStats = {
@@ -108,14 +120,6 @@ export function DashboardContent({ locale }: DashboardPageProps) {
     return <SkeletonDashboard />;
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-LK", {
-      style: "currency",
-      currency: "LKR",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -126,19 +130,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
         </div>
         <Link href={`/${locale}/dashboard/quotations/new`}>
           <Button>
-            <svg
-              className="w-4 h-4 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
+            <PlusIcon className="w-4 h-4 mr-2" />
             {t("newQuotationRequest")}
           </Button>
         </Link>
@@ -146,125 +138,30 @@ export function DashboardContent({ locale }: DashboardPageProps) {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-primary"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {mockStats.activeBookings}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t("activeBookings")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-yellow-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {mockStats.pendingQuotations}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t("pendingQuotations")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {mockStats.completedTrips}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t("completedTrips")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {formatCurrency(mockStats.totalSpent)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t("totalSpent")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          value={mockStats.activeBookings}
+          label={t("activeBookings")}
+          icon={<CalendarIcon className="w-6 h-6" />}
+          variant="primary"
+        />
+        <StatCard
+          value={mockStats.pendingQuotations}
+          label={t("pendingQuotations")}
+          icon={<ClipboardIcon className="w-6 h-6" />}
+          variant="warning"
+        />
+        <StatCard
+          value={mockStats.completedTrips}
+          label={t("completedTrips")}
+          icon={<CheckCircleIcon className="w-6 h-6" />}
+          variant="success"
+        />
+        <StatCard
+          value={formatCurrency(mockStats.totalSpent)}
+          label={t("totalSpent")}
+          icon={<CurrencyIcon className="w-6 h-6" />}
+          variant="info"
+        />
       </div>
 
       {/* Main Content Grid */}
@@ -276,19 +173,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
             <Link href={`/${locale}/dashboard/bookings`}>
               <Button variant="ghost" size="sm">
                 {t("viewAll")}
-                <svg
-                  className="w-4 h-4 ml-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
+                <ChevronRightIcon className="w-4 h-4 ml-1" />
               </Button>
             </Link>
           </CardHeader>
@@ -322,19 +207,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
             <Link href={`/${locale}/dashboard/quotations`}>
               <Button variant="ghost" size="sm">
                 {t("viewAll")}
-                <svg
-                  className="w-4 h-4 ml-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
+                <ChevronRightIcon className="w-4 h-4 ml-1" />
               </Button>
             </Link>
           </CardHeader>
@@ -398,88 +271,36 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           <CardTitle className="text-lg">{t("quickActions")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <QuickActionGrid columns={4}>
             <Link href={`/${locale}/dashboard/quotations/new`}>
-              <div className="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors text-center cursor-pointer">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-6 h-6 text-primary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                </div>
-                <p className="font-medium text-foreground">{t("newRequest")}</p>
-              </div>
+              <QuickActionCard
+                label={t("newRequest")}
+                icon={<PlusIcon className="w-6 h-6" />}
+                variant="primary"
+              />
             </Link>
             <Link href={`/${locale}/dashboard/bookings`}>
-              <div className="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors text-center cursor-pointer">
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-6 h-6 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                </div>
-                <p className="font-medium text-foreground">{t("myBookings")}</p>
-              </div>
+              <QuickActionCard
+                label={t("myBookings")}
+                icon={<ClipboardIcon className="w-6 h-6" />}
+                variant="success"
+              />
             </Link>
             <Link href={`/${locale}/dashboard/reviews`}>
-              <div className="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors text-center cursor-pointer">
-                <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-6 h-6 text-yellow-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                    />
-                  </svg>
-                </div>
-                <p className="font-medium text-foreground">{t("myReviews")}</p>
-              </div>
+              <QuickActionCard
+                label={t("myReviews")}
+                icon={<StarIcon className="w-6 h-6" />}
+                variant="warning"
+              />
             </Link>
             <Link href={`/${locale}/dashboard/profile`}>
-              <div className="p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors text-center cursor-pointer">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-6 h-6 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </div>
-                <p className="font-medium text-foreground">{t("profile")}</p>
-              </div>
+              <QuickActionCard
+                label={t("profile")}
+                icon={<UserIcon className="w-6 h-6" />}
+                variant="info"
+              />
             </Link>
-          </div>
+          </QuickActionGrid>
         </CardContent>
       </Card>
     </div>

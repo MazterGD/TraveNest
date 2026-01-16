@@ -13,6 +13,8 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
+  ArrowRightIcon,
+  ArrowsRightLeftIcon,
 } from "@/components/ui";
 import { DISTRICTS, VEHICLE_TYPES } from "@/constants";
 import { cn } from "@/lib/utils/cn";
@@ -131,19 +133,7 @@ export function QuotationRequestForm({
               )}
             >
               <div className="flex items-center gap-3">
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 8l4 4m0 0l-4 4m4-4H3"
-                  />
-                </svg>
+                <ArrowRightIcon className="w-6 h-6" />
                 <div className="text-left">
                   <p className="font-medium">{t("oneWay")}</p>
                   <p className="text-sm text-muted-foreground">
@@ -166,19 +156,7 @@ export function QuotationRequestForm({
               )}
             >
               <div className="flex items-center gap-3">
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                  />
-                </svg>
+                <ArrowsRightLeftIcon className="w-6 h-6" />
                 <div className="text-left">
                   <p className="font-medium">{t("roundTrip")}</p>
                   <p className="text-sm text-muted-foreground">
