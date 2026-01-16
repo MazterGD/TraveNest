@@ -7,6 +7,7 @@ TravelNest is a web-based bus rental marketplace platform designed to connect bu
 ## 🌟 Features
 
 ### For Customers
+
 - Advanced search with filters (capacity, amenities, price, location)
 - Standardized quotation requests with transparent cost breakdowns
 - Multi-vendor comparison
@@ -15,6 +16,7 @@ TravelNest is a web-based bus rental marketplace platform designed to connect bu
 - Rating and review system
 
 ### For Bus Owners
+
 - Self-registration with document verification
 - Fleet management and availability calendars
 - Automated quotation generation
@@ -22,6 +24,7 @@ TravelNest is a web-based bus rental marketplace platform designed to connect bu
 - Direct customer communication
 
 ### For Admins
+
 - Owner verification and approval workflows
 - Dispute resolution
 - Platform analytics and reporting
@@ -42,29 +45,91 @@ TravelNest is a web-based bus rental marketplace platform designed to connect bu
 
 ```
 src/
-├── app/                    # Next.js app directory
-│   ├── [locale]/          # Internationalized routes
-│   └── layout.tsx         # Root layout
-├── components/            # React components
-│   ├── layout/           # Layout components (Header, Footer, etc.)
-│   ├── ui/               # Reusable UI components
-│   ├── shared/           # Shared components
-│   └── features/         # Feature-specific components
-│       ├── customer/     # Customer portal components
-│       ├── owner/        # Owner portal components
-│       ├── admin/        # Admin portal components
-│       └── public/       # Public pages components
-├── lib/                  # Utility libraries
-│   ├── utils/           # Utility functions
-│   ├── api/             # API client
-│   └── validations/     # Form validation schemas
-├── types/               # TypeScript type definitions
-├── hooks/               # Custom React hooks
-├── store/               # State management
-├── i18n/                # Internationalization
-│   └── locales/         # Translation files (en, si, ta)
-├── constants/           # Application constants
-└── services/            # Business logic services
+├── app/                          # Next.js App Router pages
+│   ├── globals.css              # Global styles and Tailwind config
+│   ├── layout.tsx               # Root layout
+│   └── [locale]/                # Internationalized routes
+│       ├── layout.tsx           # Locale layout with i18n provider
+│       ├── page.tsx             # Home page
+│       ├── login/               # Login page
+│       ├── register/            # Registration page
+│       ├── search/              # Vehicle search page
+│       ├── about/               # About page
+│       ├── contact/             # Contact page
+│       ├── how-it-works/        # How it works page
+│       ├── faq/                 # FAQ page
+│       ├── privacy/             # Privacy policy
+│       ├── terms/               # Terms of service
+│       ├── refund-policy/       # Refund policy
+│       └── dashboard/           # Customer dashboard (protected)
+│           ├── layout.tsx       # Dashboard layout with sidebar
+│           ├── page.tsx         # Dashboard overview
+│           ├── quotations/      # Quotation management
+│           │   ├── page.tsx     # Quotation requests list
+│           │   └── new/         # New quotation request form
+│           ├── bookings/        # Booking management
+│           ├── reviews/         # Customer reviews
+│           └── profile/         # Profile settings
+├── components/                   # React components
+│   ├── layout/                  # Layout components
+│   │   ├── Header.tsx           # Navigation header
+│   │   ├── Footer.tsx           # Site footer
+│   │   ├── MainLayout.tsx       # Public pages layout
+│   │   └── LanguageSwitcher.tsx # i18n language selector
+│   ├── ui/                      # Reusable UI components
+│   │   ├── Button.tsx           # Button component
+│   │   ├── Input.tsx            # Text input component
+│   │   ├── TextArea.tsx         # Textarea component
+│   │   ├── Select.tsx           # Custom select dropdown
+│   │   ├── Card.tsx             # Card components
+│   │   ├── Modal.tsx            # Modal dialog
+│   │   ├── Tabs.tsx             # Tab navigation
+│   │   ├── Badge.tsx            # Status badges
+│   │   ├── Avatar.tsx           # User avatars
+│   │   ├── DatePicker.tsx       # Date/time pickers
+│   │   ├── Accordion.tsx        # Expandable accordion
+│   │   ├── PageHeader.tsx       # Page header component
+│   │   ├── EmptyState.tsx       # Empty state displays
+│   │   ├── Skeleton.tsx         # Loading skeletons
+│   │   └── index.ts             # Barrel exports
+│   └── features/                # Feature-specific components
+│       └── customer/            # Customer portal components
+│           ├── QuotationRequestForm.tsx  # Quotation request form
+│           ├── QuotationCard.tsx         # Quotation display card
+│           ├── QuotationRequestCard.tsx  # Request card component
+│           ├── BookingCard.tsx           # Booking display card
+│           ├── ReviewForm.tsx            # Review submission form
+│           └── index.ts                  # Barrel exports
+├── hooks/                       # Custom React hooks
+│   ├── useAuth.ts              # Authentication hook
+│   ├── useQuotations.ts        # Quotations management hook
+│   ├── useBookings.ts          # Bookings management hook
+│   ├── useUtils.ts             # Utility hooks (debounce, etc.)
+│   └── index.ts                # Barrel exports
+├── store/                       # Zustand state management
+│   ├── authStore.ts            # Authentication state
+│   ├── quotationStore.ts       # Quotation state
+│   ├── bookingStore.ts         # Booking state
+│   └── index.ts                # Barrel exports
+├── lib/                         # Utility libraries
+│   ├── utils/
+│   │   └── cn.ts               # Class name utility
+│   ├── api/
+│   │   ├── client.ts           # HTTP API client
+│   │   └── index.ts            # API exports
+│   └── validations/
+│       └── index.ts            # Zod validation schemas
+├── types/                       # TypeScript definitions
+│   └── index.ts                # Core type definitions
+├── constants/                   # Application constants
+│   └── index.ts                # App config, districts, etc.
+├── i18n/                        # Internationalization
+│   ├── request.ts              # next-intl config
+│   └── locales/                # Translation files
+│       ├── en/common.json      # English translations
+│       ├── si/common.json      # Sinhala translations
+│       └── ta/common.json      # Tamil translations
+└── middleware.ts               # Next.js middleware (i18n routing)
 ```
 
 ## 🚀 Getting Started
@@ -81,17 +146,20 @@ src/
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/MazterGD/TraveNest.git
 cd TraveNest
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Set up environment variables:
+
 ```bash
 cp .env.example .env.local
 ```
@@ -99,6 +167,7 @@ cp .env.example .env.local
 Edit `.env.local` and add your configuration values.
 
 4. Run the development server:
+
 ```bash
 npm run dev
 ```
@@ -108,6 +177,7 @@ npm run dev
 ## 🌐 Available Languages
 
 The platform supports three languages:
+
 - English (EN)
 - Sinhala (SI)
 - Tamil (TA)
@@ -121,6 +191,7 @@ TravelNest is a Progressive Web App that can be installed on mobile devices and 
 ## 🎨 Styling
 
 The project uses:
+
 - **Tailwind CSS** for styling
 - **Custom CSS variables** for theming
 - **HSL color system** for consistent color management
@@ -128,9 +199,11 @@ The project uses:
 
 ### Brand Colors
 
-- **Primary:** Deep Orange (#EF5B0C) - Main brand color
-- **Secondary:** Blue (#0073E6) - Trust and reliability
-- **Accent:** Gold (#F5C000) - Highlights
+- **Primary:** Deep Blue (#00476B) - Main brand color, trust and reliability
+- **Secondary:** Muted Blue (#2F6280) - Secondary actions and text
+- **Accent:** Light Blue (#6ACAF0) - Interactive elements and highlights
+- **Muted:** Soft Cyan (#C9E9F8) - Backgrounds and subtle elements
+- **Card:** Very Light Blue (#DAF3FB) - Card backgrounds
 
 ## 📝 Scripts
 

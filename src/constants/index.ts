@@ -6,7 +6,8 @@
 export const APP_NAME = "TravelNest";
 export const APP_DESCRIPTION =
   "Sri Lanka's premier bus rental marketplace connecting bus owners with customers";
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+export const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 // Supported Languages
 export const SUPPORTED_LOCALES = ["en", "si", "ta"] as const;
@@ -100,8 +101,24 @@ export const CURRENCY_SYMBOL = "Rs.";
 // Validation
 export const PASSWORD_MIN_LENGTH = 8;
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+export const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
 export const MAX_IMAGES_PER_VEHICLE = 10;
 
 // Session
 export const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+// Districts (alias for convenience)
+export const DISTRICTS = SRI_LANKAN_DISTRICTS;
+
+// Vehicle Types for forms
+export const VEHICLE_TYPES = [
+  { value: "mini_bus", label: "Mini Bus (10-15 seats)" },
+  { value: "standard_bus", label: "Standard Bus (30-40 seats)" },
+  { value: "luxury_bus", label: "Luxury Bus (40-50 seats)" },
+  { value: "semi_luxury_bus", label: "Semi-Luxury Bus (35-45 seats)" },
+] as const;

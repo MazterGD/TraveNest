@@ -149,8 +149,9 @@ export interface Quotation {
 // Location Type
 export interface Location {
   address: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
+  city?: string;
   district?: string;
 }
 
