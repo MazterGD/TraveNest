@@ -132,7 +132,7 @@ export const errorHandler = (
     (req.headers["x-request-id"] as string) || generateRequestId();
 
   // Default error values
-  let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+  let statusCode: number = HttpStatus.INTERNAL_SERVER_ERROR;
   let message = "An unexpected error occurred";
   let code: ErrorCodeType | string = ErrorCode.INTERNAL_ERROR;
   let details: ValidationError[] | Record<string, unknown> | undefined;

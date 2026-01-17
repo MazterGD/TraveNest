@@ -127,8 +127,14 @@ jobs:
             - name: Generate Prisma Client
               run: pnpm db:generate
 
-            - name: Run TypeScript Check
-              run: pnpm -r exec tsc --noEmit
+            - name: Run TypeScript Check on API
+              run: pnpm --filter @travenest/api exec tsc --noEmit
+
+            - name: Run TypeScript Check on Web
+              run: pnpm --filter @travenest/web exec tsc --noEmit
+
+            - name: Run TypeScript Check on Shared Types
+              run: pnpm --filter @travenest/shared-types exec tsc --noEmit
 
     # ===========================================================================
     # API Tests - Backend Regression Testing

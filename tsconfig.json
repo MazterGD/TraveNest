@@ -10,11 +10,11 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": [
-    "node_modules",
-    "**/node_modules",
-    "apps",
-    "packages"
+  "files": [],
+  "references": [
+    { "path": "./apps/api" },
+    { "path": "./apps/web" },
+    { "path": "./packages/database" },
+    { "path": "./packages/shared-types" }
   ]
 }

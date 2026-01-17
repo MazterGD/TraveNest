@@ -116,18 +116,35 @@ export const optionalAuth = (
 // Authorization Middleware (RBAC)
 // ============================================
 
+// Role strings that can be used in routes
+type RoleString = "customer" | "owner" | "admin";
+
+// Map string roles to UserRole enum
+const roleMap: Record<RoleString, UserRole> = {
+  customer: UserRole.CUSTOMER,
+  owner: UserRole.VEHICLE_OWNER,
+  admin: UserRole.ADMIN,
+};
+
 /**
  * Role-based authorization - check if user has required role
- * @param allowedRoles - Array of roles that can access the resource
+ * @param allowedRoles - Array of roles that can access the resource (accepts both enum and string)
  */
-export const authorize = (...allowedRoles: UserRole[]) => {
+export const authorize = (...allowedRoles: (UserRole | RoleString)[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       next(ApiError.unauthorized("Authentication required"));
       return;
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    // Convert string roles to UserRole enum values
+    const normalizedRoles = allowedRoles.map((role) =>
+      typeof role === "string" && role in roleMap
+        ? roleMap[role as RoleString]
+        : role,
+    );
+
+    if (!normalizedRoles.includes(req.user.role)) {
       next(
         ApiError.forbidden("You do not have permission to perform this action"),
       );

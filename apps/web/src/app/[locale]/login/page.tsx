@@ -1,16 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { PageHeader, Input, Button, Card } from "@/components/ui";
+import { authService, ApiError } from "@/lib/api";
+import { useAuthStore } from "@/store";
 
 export default function LoginPage() {
   const t = useTranslations("auth.login");
   const params = useParams();
+  const router = useRouter();
   const locale = params.locale as string;
+  const { login } = useAuthStore();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -18,13 +22,33 @@ export default function LoginPage() {
     rememberMe: false,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement login logic
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
+    setError(null);
+
+    try {
+      const response = await authService.login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      // Store user and token in auth store
+      login(response.user, response.accessToken);
+
+      // Redirect to dashboard or home
+      router.push(`/${locale}`);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -35,6 +59,12 @@ export default function LoginPage() {
         <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8">
           <Card className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
               <Input
                 label={t("email")}
                 type="email"

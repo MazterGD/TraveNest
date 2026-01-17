@@ -1,20 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { FaBus, FaUser } from "react-icons/fa";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { PageHeader, Input, Button, Card } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
+import { authService, ApiError } from "@/lib/api";
+import { useAuthStore } from "@/store";
 
 type AccountType = "customer" | "owner";
 
 export default function RegisterPage() {
   const t = useTranslations("auth.register");
   const params = useParams();
+  const router = useRouter();
   const locale = params.locale as string;
+  const { login } = useAuthStore();
 
   const [accountType, setAccountType] = useState<AccountType>("customer");
   const [formData, setFormData] = useState({
@@ -26,13 +30,56 @@ export default function RegisterPage() {
     agreeTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement registration logic
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
+    setError(null);
+    setFieldErrors({});
+
+    // Client-side validation
+    if (formData.password !== formData.confirmPassword) {
+      setFieldErrors({ confirmPassword: "Passwords do not match" });
+      setIsLoading(false);
+      return;
+    }
+
+    // Parse name into firstName and lastName
+    const nameParts = formData.name.trim().split(/\s+/);
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || nameParts[0] || "";
+
+    try {
+      const response = await authService.register({
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        firstName,
+        lastName,
+        phone: formData.phone || undefined,
+        role: accountType,
+      });
+
+      // Store user and token in auth store
+      login(response.user, response.accessToken);
+
+      // Redirect to dashboard or home
+      router.push(`/${locale}`);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.isValidationError()) {
+          setFieldErrors(err.getValidationErrors());
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -55,7 +102,7 @@ export default function RegisterPage() {
                     "flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-colors",
                     accountType === "customer"
                       ? "border-primary bg-primary/5 text-primary"
-                      : "border-border hover:border-muted-foreground"
+                      : "border-border hover:border-muted-foreground",
                   )}
                 >
                   <FaUser className="h-6 w-6 mb-2" />
@@ -68,7 +115,7 @@ export default function RegisterPage() {
                     "flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-colors",
                     accountType === "owner"
                       ? "border-primary bg-primary/5 text-primary"
-                      : "border-border hover:border-muted-foreground"
+                      : "border-border hover:border-muted-foreground",
                   )}
                 >
                   <FaBus className="h-6 w-6 mb-2" />
@@ -78,6 +125,12 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {error && (
+                <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
               <Input
                 label={t("name")}
                 type="text"
@@ -86,6 +139,7 @@ export default function RegisterPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
+                error={fieldErrors.firstName || fieldErrors.lastName}
                 required
               />
 
@@ -97,6 +151,7 @@ export default function RegisterPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
+                error={fieldErrors.email}
                 required
               />
 
@@ -108,7 +163,7 @@ export default function RegisterPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, phone: e.target.value })
                 }
-                required
+                error={fieldErrors.phone}
               />
 
               <Input
@@ -119,6 +174,7 @@ export default function RegisterPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
+                error={fieldErrors.password}
                 required
               />
 
@@ -130,6 +186,7 @@ export default function RegisterPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, confirmPassword: e.target.value })
                 }
+                error={fieldErrors.confirmPassword}
                 required
               />
 
