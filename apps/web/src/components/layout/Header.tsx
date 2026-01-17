@@ -1,17 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
-import { FaBars, FaTimes } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { FaBars, FaTimes, FaSignOutAlt, FaUser } from "react-icons/fa";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useAuthStore } from "@/store";
+import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 
 export function Header() {
   const t = useTranslations("navigation");
   const params = useParams();
+  const router = useRouter();
   const locale = params.locale as string;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
+
+  // Wait for hydration to complete before showing auth-dependent UI
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    setMobileMenuOpen(false);
+    router.push(`/${locale}`);
+  };
+
+  // Show guest UI during SSR and initial hydration
+  const showAuthenticatedUI = mounted && !isLoading && isAuthenticated && user;
 
   const navigation = [
     { name: t("home"), href: `/${locale}` },
@@ -53,18 +72,39 @@ export function Header() {
           {/* Right Side Actions */}
           <div className="hidden md:flex md:items-center md:space-x-4">
             <LanguageSwitcher />
-            <Link
-              href={`/${locale}/login`}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              {t("login")}
-            </Link>
-            <Link
-              href={`/${locale}/register`}
-              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
-            >
-              {t("register")}
-            </Link>
+            {showAuthenticatedUI ? (
+              <>
+                <Link
+                  href={getDashboardUrl(user, locale)}
+                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <FaUser className="h-4 w-4" />
+                  {user.firstName}
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+                >
+                  <FaSignOutAlt className="h-4 w-4" />
+                  {t("logout", { defaultValue: "Logout" })}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={`/${locale}/login`}
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {t("login")}
+                </Link>
+                <Link
+                  href={`/${locale}/register`}
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+                >
+                  {t("register")}
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -101,20 +141,42 @@ export function Header() {
               </Link>
             ))}
             <div className="border-t border-border pt-4 pb-1">
-              <Link
-                href={`/${locale}/login`}
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t("login")}
-              </Link>
-              <Link
-                href={`/${locale}/register`}
-                className="block rounded-md px-3 py-2 text-base font-medium text-primary hover:bg-muted transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t("register")}
-              </Link>
+              {showAuthenticatedUI ? (
+                <>
+                  <Link
+                    href={getDashboardUrl(user, locale)}
+                    className="flex items-center gap-2 rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <FaUser className="h-4 w-4" />
+                    {user.firstName}&apos;s Dashboard
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <FaSignOutAlt className="h-4 w-4" />
+                    {t("logout", { defaultValue: "Logout" })}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href={`/${locale}/login`}
+                    className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {t("login")}
+                  </Link>
+                  <Link
+                    href={`/${locale}/register`}
+                    className="block rounded-md px-3 py-2 text-base font-medium text-primary hover:bg-muted transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {t("register")}
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

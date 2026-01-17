@@ -7,6 +7,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  _hasHydrated: boolean;
 
   // Actions
   setUser: (user: User | null) => void;
@@ -14,6 +15,7 @@ interface AuthState {
   login: (user: User, token: string) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
+  setHasHydrated: (state: boolean) => void;
 
   // Role checks
   isCustomer: () => boolean;
@@ -28,6 +30,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       isLoading: true,
+      _hasHydrated: false,
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
 
@@ -50,6 +53,9 @@ export const useAuthStore = create<AuthState>()(
 
       setLoading: (isLoading) => set({ isLoading }),
 
+      setHasHydrated: (state) =>
+        set({ _hasHydrated: state, isLoading: !state }),
+
       // Role check helpers
       isCustomer: () => get().user?.role === UserRole.CUSTOMER,
       isVehicleOwner: () => get().user?.role === UserRole.VEHICLE_OWNER,
@@ -62,6 +68,9 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );

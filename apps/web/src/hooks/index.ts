@@ -7,6 +7,14 @@ export {
   useAdminRoute,
   useOwnerOrAdminRoute,
 } from "./useProtectedRoute";
+export {
+  useAuthGuard,
+  useGuestGuard,
+  useAuthRequired,
+  useCustomerGuard,
+  useOwnerGuard,
+  useAdminGuard,
+} from "./useAuthGuard";
 
 // API & Data Fetching
 export { useAsync, useFetch, useMutation } from "./useAsync";

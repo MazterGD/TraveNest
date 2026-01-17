@@ -6,10 +6,18 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { FaBus, FaUser } from "react-icons/fa";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { PageHeader, Input, Button, Card } from "@/components/ui";
+import {
+  PageHeader,
+  Input,
+  Button,
+  Card,
+  LoadingSpinner,
+} from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
 import { authService, ApiError } from "@/lib/api";
+import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 import { useAuthStore } from "@/store";
+import { useGuestGuard } from "@/hooks";
 
 type AccountType = "customer" | "owner";
 
@@ -19,6 +27,9 @@ export default function RegisterPage() {
   const router = useRouter();
   const locale = params.locale as string;
   const { login } = useAuthStore();
+
+  // Redirect authenticated users to their dashboard
+  const { isLoading: guardLoading, isAuthorized } = useGuestGuard();
 
   const [accountType, setAccountType] = useState<AccountType>("customer");
   const [formData, setFormData] = useState({
@@ -65,8 +76,8 @@ export default function RegisterPage() {
       // Store user and token in auth store
       login(response.user, response.accessToken);
 
-      // Redirect to dashboard or home
-      router.push(`/${locale}`);
+      // Redirect to role-specific dashboard
+      router.push(getDashboardUrl(response.user, locale));
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.isValidationError()) {
@@ -81,6 +92,17 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking auth state
+  if (guardLoading || !isAuthorized) {
+    return (
+      <MainLayout>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>

@@ -2,9 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { APP_NAME } from "@/constants";
+import { useCustomerGuard } from "@/hooks";
+import { useAuthStore } from "@/store";
+import { LoadingSpinner } from "@/components/ui";
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode;
@@ -17,6 +20,16 @@ export function DashboardLayoutClient({
 }: DashboardLayoutClientProps) {
   const t = useTranslations("dashboard");
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Protect this route - only customers can access
+  const { isLoading: guardLoading, isAuthorized } = useCustomerGuard();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    router.push(`/${locale}`);
+  };
 
   const navItems = [
     {
@@ -123,6 +136,15 @@ export function DashboardLayoutClient({
     return pathname.startsWith(href);
   };
 
+  // Show loading while checking auth state
+  if (guardLoading || !isAuthorized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/30">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Top Navbar */}
@@ -160,10 +182,36 @@ export function DashboardLayoutClient({
               </button>
 
               {/* Profile Dropdown */}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary">U</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary">
+                      {user?.firstName?.[0]?.toUpperCase() || "U"}
+                    </span>
+                  </div>
+                  <span className="hidden sm:block text-sm font-medium text-foreground">
+                    {user?.firstName}
+                  </span>
                 </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-muted-foreground hover:text-red-600 transition-colors"
+                  title={t("logout", { defaultValue: "Logout" })}
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -183,7 +231,7 @@ export function DashboardLayoutClient({
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
                       isActive(item.href)
                         ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
                     {item.icon}
@@ -227,7 +275,9 @@ export function DashboardLayoutClient({
                 href={item.href}
                 className={cn(
                   "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors",
-                  isActive(item.href) ? "text-primary" : "text-muted-foreground"
+                  isActive(item.href)
+                    ? "text-primary"
+                    : "text-muted-foreground",
                 )}
               >
                 {item.icon}

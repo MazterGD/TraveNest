@@ -5,9 +5,17 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { PageHeader, Input, Button, Card } from "@/components/ui";
+import {
+  PageHeader,
+  Input,
+  Button,
+  Card,
+  LoadingSpinner,
+} from "@/components/ui";
 import { authService, ApiError } from "@/lib/api";
+import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 import { useAuthStore } from "@/store";
+import { useGuestGuard } from "@/hooks";
 
 export default function LoginPage() {
   const t = useTranslations("auth.login");
@@ -15,6 +23,9 @@ export default function LoginPage() {
   const router = useRouter();
   const locale = params.locale as string;
   const { login } = useAuthStore();
+
+  // Redirect authenticated users to their dashboard
+  const { isLoading: guardLoading, isAuthorized } = useGuestGuard();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -38,8 +49,8 @@ export default function LoginPage() {
       // Store user and token in auth store
       login(response.user, response.accessToken);
 
-      // Redirect to dashboard or home
-      router.push(`/${locale}`);
+      // Redirect to role-specific dashboard
+      router.push(getDashboardUrl(response.user, locale));
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -50,6 +61,17 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking auth state
+  if (guardLoading || !isAuthorized) {
+    return (
+      <MainLayout>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
