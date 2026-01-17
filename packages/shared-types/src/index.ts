@@ -1,3 +1,6 @@
+// Re-export HTTP types
+export * from "./http.js";
+
 // User types
 export type UserRole = "customer" | "owner" | "admin";
 

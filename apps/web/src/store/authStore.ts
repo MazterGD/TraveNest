@@ -1,15 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-// User type definition
-interface User {
-  id: string;
-  email: string;
-  phone?: string;
-  role: "customer" | "owner" | "admin";
-  name: string;
-  profilePicture?: string;
-}
+import { UserRole, type User } from "@/types";
 
 interface AuthState {
   user: User | null;
@@ -23,13 +14,16 @@ interface AuthState {
   login: (user: User, token: string) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
-}
 
-export type { User };
+  // Role checks
+  isCustomer: () => boolean;
+  isVehicleOwner: () => boolean;
+  isAdmin: () => boolean;
+}
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -55,14 +49,19 @@ export const useAuthStore = create<AuthState>()(
         }),
 
       setLoading: (isLoading) => set({ isLoading }),
+
+      // Role check helpers
+      isCustomer: () => get().user?.role === UserRole.CUSTOMER,
+      isVehicleOwner: () => get().user?.role === UserRole.VEHICLE_OWNER,
+      isAdmin: () => get().user?.role === UserRole.ADMIN,
     }),
     {
-      name: "travelnest-auth",
+      name: "travenest-auth",
       partialize: (state) => ({
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
-    }
-  )
+    },
+  ),
 );

@@ -1,33 +1,53 @@
 /**
  * TravelNest Type Definitions
  * Centralized type definitions for the entire application
+ * Aligned with Prisma database schema
  */
 
-// User Types
+// ============================================
+// User Types (match Prisma UserRole & UserStatus)
+// ============================================
 export enum UserRole {
-  CUSTOMER = "customer",
-  OWNER = "owner",
-  ADMIN = "admin",
+  CUSTOMER = "CUSTOMER",
+  VEHICLE_OWNER = "VEHICLE_OWNER",
+  ADMIN = "ADMIN",
 }
 
 export enum UserStatus {
-  ACTIVE = "active",
-  INACTIVE = "inactive",
-  SUSPENDED = "suspended",
-  PENDING_VERIFICATION = "pending_verification",
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  SUSPENDED = "SUSPENDED",
+  PENDING_VERIFICATION = "PENDING_VERIFICATION",
 }
 
 export interface User {
   id: string;
   email: string;
-  phone: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  avatar: string | null;
   role: UserRole;
   status: UserStatus;
-  name: string;
-  profilePicture?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  isVerified: boolean;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
+
+/**
+ * Helper to get full name from user
+ */
+export const getUserFullName = (user: User): string =>
+  `${user.firstName} ${user.lastName}`;
+
+/**
+ * Helper to check user roles
+ */
+export const isCustomer = (user: User): boolean =>
+  user.role === UserRole.CUSTOMER;
+export const isVehicleOwner = (user: User): boolean =>
+  user.role === UserRole.VEHICLE_OWNER;
+export const isAdmin = (user: User): boolean => user.role === UserRole.ADMIN;
 
 // Vehicle Types
 export enum VehicleType {

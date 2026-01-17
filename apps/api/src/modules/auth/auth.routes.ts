@@ -6,6 +6,7 @@ import {
   loginSchema,
   registerSchema,
   refreshTokenSchema,
+  changePasswordSchema,
 } from "./auth.schemas.js";
 
 const router = Router();
@@ -16,7 +17,7 @@ router.post("/login", validate(loginSchema), authController.login);
 router.post(
   "/refresh-token",
   validate(refreshTokenSchema),
-  authController.refreshToken
+  authController.refreshToken,
 );
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
@@ -24,6 +25,11 @@ router.post("/reset-password", authController.resetPassword);
 // Protected routes
 router.post("/logout", authenticate, authController.logout);
 router.get("/me", authenticate, authController.getCurrentUser);
-router.put("/change-password", authenticate, authController.changePassword);
+router.put(
+  "/change-password",
+  authenticate,
+  validate(changePasswordSchema),
+  authController.changePassword,
+);
 
 export default router;

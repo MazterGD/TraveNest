@@ -3,6 +3,19 @@ import jwt from "jsonwebtoken";
 import { config } from "../config/index.js";
 import { ApiError } from "./errorHandler.js";
 
+// ============================================
+// Enums (matching Prisma schema)
+// ============================================
+export enum UserRole {
+  CUSTOMER = "CUSTOMER",
+  VEHICLE_OWNER = "VEHICLE_OWNER",
+  ADMIN = "ADMIN",
+}
+
+// ============================================
+// Type Definitions
+// ============================================
+
 // Extend Express Request to include user
 declare global {
   namespace Express {
@@ -10,7 +23,7 @@ declare global {
       user?: {
         id: string;
         email: string;
-        role: "customer" | "owner" | "admin";
+        role: UserRole;
       };
     }
   }
@@ -19,16 +32,22 @@ declare global {
 interface JwtPayload {
   id: string;
   email: string;
-  role: "customer" | "owner" | "admin";
+  role: UserRole;
   iat: number;
   exp: number;
 }
 
-// Authentication middleware
+// ============================================
+// Authentication Middleware
+// ============================================
+
+/**
+ * Require authentication - fails if no valid token
+ */
 export const authenticate = (
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   try {
     // Get token from header or cookie
@@ -38,7 +57,7 @@ export const authenticate = (
       : req.cookies?.accessToken;
 
     if (!token) {
-      throw new ApiError(401, "Access denied. No token provided.");
+      throw ApiError.unauthorized("Access denied. No token provided.");
     }
 
     // Verify token
@@ -54,20 +73,22 @@ export const authenticate = (
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      next(new ApiError(401, "Invalid token"));
+      next(ApiError.unauthorized("Invalid token"));
     } else if (error instanceof jwt.TokenExpiredError) {
-      next(new ApiError(401, "Token expired"));
+      next(ApiError.unauthorized("Token expired", "TOKEN_EXPIRED"));
     } else {
       next(error);
     }
   }
 };
 
-// Optional authentication - doesn't fail if no token
+/**
+ * Optional authentication - doesn't fail if no token
+ */
 export const optionalAuth = (
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   try {
     const authHeader = req.headers.authorization;
@@ -91,19 +112,24 @@ export const optionalAuth = (
   }
 };
 
-// Role-based authorization middleware
-export const authorize = (
-  ...allowedRoles: Array<"customer" | "owner" | "admin">
-) => {
+// ============================================
+// Authorization Middleware (RBAC)
+// ============================================
+
+/**
+ * Role-based authorization - check if user has required role
+ * @param allowedRoles - Array of roles that can access the resource
+ */
+export const authorize = (...allowedRoles: UserRole[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
-      next(new ApiError(401, "Authentication required"));
+      next(ApiError.unauthorized("Authentication required"));
       return;
     }
 
     if (!allowedRoles.includes(req.user.role)) {
       next(
-        new ApiError(403, "You do not have permission to perform this action")
+        ApiError.forbidden("You do not have permission to perform this action"),
       );
       return;
     }
@@ -112,22 +138,25 @@ export const authorize = (
   };
 };
 
-// Check if user owns the resource
+/**
+ * Check if user is the owner of a resource or an admin
+ * @param getResourceOwnerId - Function to get the owner ID from the request
+ */
 export const authorizeOwner = (
-  getResourceOwnerId: (req: Request) => Promise<string | null>
+  getResourceOwnerId: (req: Request) => Promise<string | null>,
 ) => {
   return async (
     req: Request,
     _res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
-        throw new ApiError(401, "Authentication required");
+        throw ApiError.unauthorized("Authentication required");
       }
 
       // Admins can access anything
-      if (req.user.role === "admin") {
+      if (req.user.role === UserRole.ADMIN) {
         next();
         return;
       }
@@ -135,9 +164,8 @@ export const authorizeOwner = (
       const resourceOwnerId = await getResourceOwnerId(req);
 
       if (!resourceOwnerId || resourceOwnerId !== req.user.id) {
-        throw new ApiError(
-          403,
-          "You do not have permission to access this resource"
+        throw ApiError.forbidden(
+          "You do not have permission to access this resource",
         );
       }
 
@@ -147,3 +175,32 @@ export const authorizeOwner = (
     }
   };
 };
+
+// ============================================
+// Role Check Helpers
+// ============================================
+
+/**
+ * Check if user is a customer
+ */
+export const isCustomer = authorize(UserRole.CUSTOMER);
+
+/**
+ * Check if user is a vehicle owner
+ */
+export const isVehicleOwner = authorize(UserRole.VEHICLE_OWNER);
+
+/**
+ * Check if user is an admin
+ */
+export const isAdmin = authorize(UserRole.ADMIN);
+
+/**
+ * Check if user is a vehicle owner or admin
+ */
+export const isOwnerOrAdmin = authorize(UserRole.VEHICLE_OWNER, UserRole.ADMIN);
+
+/**
+ * Check if user is a customer or admin
+ */
+export const isCustomerOrAdmin = authorize(UserRole.CUSTOMER, UserRole.ADMIN);

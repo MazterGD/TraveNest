@@ -1,180 +1,314 @@
 import bcrypt from "bcryptjs";
-import jwt, { type SignOptions } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+import xss from "xss";
+import prisma from "@travenest/database";
 import { config } from "../../config/index.js";
 import { ApiError } from "../../middleware/errorHandler.js";
 import type { RegisterInput, LoginInput } from "./auth.schemas.js";
 
-// TODO: Replace with actual Prisma client when database is set up
-// import { prisma } from '@travenest/database';
+// ============================================
+// Enums (matching Prisma schema)
+// ============================================
+export enum UserRole {
+  CUSTOMER = "CUSTOMER",
+  VEHICLE_OWNER = "VEHICLE_OWNER",
+  ADMIN = "ADMIN",
+}
 
-// Mock user type (replace with Prisma type)
-interface User {
+export enum UserStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  SUSPENDED = "SUSPENDED",
+  PENDING_VERIFICATION = "PENDING_VERIFICATION",
+}
+
+// ============================================
+// Types
+// ============================================
+interface TokenPayload {
+  id: string;
+  email: string;
+  role: string;
+}
+
+interface SafeUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  avatar: string | null;
+  role: string;
+  status: string;
+  isVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============================================
+// Token Generation
+// ============================================
+
+/**
+ * Generate JWT access and refresh tokens
+ */
+export const generateTokens = (user: {
+  id: string;
+  email: string;
+  role: string;
+}) => {
+  const payload: TokenPayload = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  };
+
+  const accessToken = jwt.sign(payload, config.jwt.secret, {
+    expiresIn: "7d",
+  });
+  const refreshToken = jwt.sign({ id: user.id }, config.jwt.refreshSecret, {
+    expiresIn: "30d",
+  });
+
+  return { accessToken, refreshToken };
+};
+
+/**
+ * Exclude password from user object
+ */
+const excludePassword = (user: {
   id: string;
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-  phone?: string;
-  role: "customer" | "owner" | "admin";
+  phone: string | null;
+  avatar: string | null;
+  role: string;
+  status: string;
+  isVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
-}
-
-// Temporary in-memory storage (replace with database)
-const users: User[] = [];
-
-// Generate JWT tokens
-export const generateTokens = (user: User) => {
-  const accessTokenOptions: SignOptions = { expiresIn: "7d" };
-  const refreshTokenOptions: SignOptions = { expiresIn: "30d" };
-
-  const accessToken = jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    config.jwt.secret,
-    accessTokenOptions
-  );
-
-  const refreshToken = jwt.sign(
-    { id: user.id },
-    config.jwt.refreshSecret,
-    refreshTokenOptions
-  );
-
-  return { accessToken, refreshToken };
+}): SafeUser => {
+  const { password: _, ...userWithoutPassword } = user;
+  return userWithoutPassword;
 };
 
-// Register new user
+// ============================================
+// Auth Operations
+// ============================================
+
+/**
+ * Register a new user
+ */
 export const registerUser = async (data: RegisterInput) => {
-  // Check if user exists
-  const existingUser = users.find((u) => u.email === data.email);
+  // Check if email already exists
+  const existingUser = await prisma.user.findUnique({
+    where: { email: data.email.toLowerCase() },
+  });
+
   if (existingUser) {
-    throw new ApiError(400, "Email already registered");
+    throw ApiError.conflict("Email already registered");
   }
 
-  // Hash password
+  // Hash password with bcrypt (12 rounds)
   const hashedPassword = await bcrypt.hash(data.password, 12);
 
-  // Create user
-  const newUser: User = {
-    id: `user_${Date.now()}`,
-    email: data.email,
-    password: hashedPassword,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    phone: data.phone,
-    role: data.role || "customer",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  // Map frontend role to database role
+  const dbRole = mapRoleToDb(data.role);
 
-  users.push(newUser);
+  // Sanitize user inputs to prevent XSS attacks
+  const sanitizedFirstName = xss(data.firstName.trim());
+  const sanitizedLastName = xss(data.lastName.trim());
+
+  // Create user in database
+  const user = await prisma.user.create({
+    data: {
+      email: data.email.toLowerCase().trim(),
+      password: hashedPassword,
+      firstName: sanitizedFirstName,
+      lastName: sanitizedLastName,
+      phone: data.phone || null,
+      role: dbRole,
+      status: UserStatus.ACTIVE,
+      isVerified: false,
+    },
+  });
 
   // Generate tokens
-  const tokens = generateTokens(newUser);
+  const tokens = generateTokens(user);
 
   // Return user without password
-  const { password: _, ...userWithoutPassword } = newUser;
-  return { user: userWithoutPassword, ...tokens };
+  return {
+    user: excludePassword(user),
+    ...tokens,
+  };
 };
 
-// Login user
+/**
+ * Login user with email and password
+ */
 export const loginUser = async (data: LoginInput) => {
-  // Find user
-  const user = users.find((u) => u.email === data.email);
+  // Find user by email
+  const user = await prisma.user.findUnique({
+    where: { email: data.email.toLowerCase() },
+  });
+
   if (!user) {
-    throw new ApiError(401, "Invalid email or password");
+    throw ApiError.unauthorized(
+      "Invalid email or password",
+      "INVALID_CREDENTIALS",
+    );
   }
 
-  // Check password
+  // Check if user is active
+  if (user.status !== UserStatus.ACTIVE) {
+    throw ApiError.forbidden(
+      user.status === UserStatus.SUSPENDED
+        ? "Your account has been suspended"
+        : "Your account is not active",
+    );
+  }
+
+  // Verify password
   const isPasswordValid = await bcrypt.compare(data.password, user.password);
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid email or password");
+    throw ApiError.unauthorized(
+      "Invalid email or password",
+      "INVALID_CREDENTIALS",
+    );
   }
 
   // Generate tokens
   const tokens = generateTokens(user);
 
   // Return user without password
-  const { password: _, ...userWithoutPassword } = user;
-  return { user: userWithoutPassword, ...tokens };
+  return {
+    user: excludePassword(user),
+    ...tokens,
+  };
 };
 
-// Refresh tokens
+/**
+ * Refresh access token using refresh token
+ */
 export const refreshUserTokens = async (refreshToken: string) => {
+  if (!refreshToken) {
+    throw ApiError.unauthorized("Refresh token is required");
+  }
+
   try {
     const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret) as {
       id: string;
     };
 
-    const user = users.find((u) => u.id === decoded.id);
+    // Find user in database
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+    });
+
     if (!user) {
-      throw new ApiError(401, "Invalid refresh token");
+      throw ApiError.unauthorized("Invalid refresh token");
     }
 
+    if (user.status !== UserStatus.ACTIVE) {
+      throw ApiError.forbidden("Account is not active");
+    }
+
+    // Generate new tokens
     return generateTokens(user);
-  } catch {
-    throw new ApiError(401, "Invalid or expired refresh token");
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw ApiError.unauthorized("Refresh token has expired", "TOKEN_EXPIRED");
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      throw ApiError.unauthorized("Invalid refresh token");
+    }
+    throw error;
   }
 };
 
-// Get user by ID
-export const getUserById = async (id: string) => {
-  const user = users.find((u) => u.id === id);
+/**
+ * Get user by ID
+ */
+export const getUserById = async (id: string): Promise<SafeUser> => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+  });
+
   if (!user) {
-    throw new ApiError(404, "User not found");
+    throw ApiError.notFound("User not found");
   }
 
-  const { password: _, ...userWithoutPassword } = user;
-  return userWithoutPassword;
+  return excludePassword(user);
 };
 
-// Change password
+/**
+ * Change user password
+ */
 export const changeUserPassword = async (
   userId: string,
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
 ) => {
-  const user = users.find((u) => u.id === userId);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
   if (!user) {
-    throw new ApiError(404, "User not found");
+    throw ApiError.notFound("User not found");
   }
 
   // Verify current password
   const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
   if (!isPasswordValid) {
-    throw new ApiError(400, "Current password is incorrect");
+    throw ApiError.badRequest("Current password is incorrect");
   }
 
   // Hash new password
-  user.password = await bcrypt.hash(newPassword, 12);
-  user.updatedAt = new Date();
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  // Update password in database
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
 
   return { message: "Password changed successfully" };
 };
 
-// Forgot password - generate reset token
+/**
+ * Generate password reset token
+ */
 export const generatePasswordResetToken = async (email: string) => {
-  const user = users.find((u) => u.email === email);
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+  });
+
+  // Don't reveal if user exists (security best practice)
   if (!user) {
-    // Don't reveal if user exists
     return { message: "If the email exists, a reset link will be sent" };
   }
 
-  // Generate reset token (in production, save this to database with expiry)
+  // Generate reset token with short expiry
   const resetToken = jwt.sign(
     { id: user.id, purpose: "password-reset" },
     config.jwt.secret,
-    { expiresIn: "1h" }
+    { expiresIn: "1h" },
   );
 
-  // TODO: Implement email sending service
-  // In development, the token can be retrieved from database for testing
-  void resetToken;
+  // TODO: Store reset token hash in database and send email
+  // For now, log token in development
+  if (config.env === "development") {
+    console.log(`Password reset token for ${email}: ${resetToken}`);
+  }
 
   return { message: "If the email exists, a reset link will be sent" };
 };
 
-// Reset password with token
+/**
+ * Reset password with token
+ */
 export const resetUserPassword = async (token: string, newPassword: string) => {
   try {
     const decoded = jwt.verify(token, config.jwt.secret) as {
@@ -183,20 +317,51 @@ export const resetUserPassword = async (token: string, newPassword: string) => {
     };
 
     if (decoded.purpose !== "password-reset") {
-      throw new ApiError(400, "Invalid reset token");
+      throw ApiError.badRequest("Invalid reset token");
     }
 
-    const user = users.find((u) => u.id === decoded.id);
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+    });
+
     if (!user) {
-      throw new ApiError(400, "Invalid reset token");
+      throw ApiError.badRequest("Invalid reset token");
     }
 
     // Hash new password
-    user.password = await bcrypt.hash(newPassword, 12);
-    user.updatedAt = new Date();
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
 
     return { message: "Password reset successfully" };
-  } catch {
-    throw new ApiError(400, "Invalid or expired reset token");
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw ApiError.badRequest("Reset token has expired");
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      throw ApiError.badRequest("Invalid reset token");
+    }
+    throw error;
   }
 };
+
+// ============================================
+// Helper Functions
+// ============================================
+
+/**
+ * Map frontend role string to database UserRole enum
+ */
+function mapRoleToDb(role?: "customer" | "owner"): UserRole {
+  switch (role) {
+    case "owner":
+      return UserRole.VEHICLE_OWNER;
+    case "customer":
+    default:
+      return UserRole.CUSTOMER;
+  }
+}

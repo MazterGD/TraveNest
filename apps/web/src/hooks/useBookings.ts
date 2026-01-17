@@ -2,9 +2,22 @@
 
 import { useCallback } from "react";
 import { useBookingStore, type BookingWithDetails } from "@/store";
-import { api } from "@/lib/api";
+import { bookingService, paymentService, ApiError } from "@/lib/api";
 import type { BookingStatus, PaymentStatus } from "@/types";
 
+/**
+ * Result type for booking operations
+ */
+interface BookingResult {
+  success: boolean;
+  error?: string;
+  code?: string;
+}
+
+/**
+ * useBookings hook - handles all booking-related operations
+ * with proper error handling and state management
+ */
 export function useBookings() {
   const {
     bookings,
@@ -25,115 +38,233 @@ export function useBookings() {
     getPastBookings,
   } = useBookingStore();
 
-  // Fetch user's bookings
-  const fetchBookings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await api.get<BookingWithDetails[]>("/bookings");
-      setBookings(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch bookings");
-    } finally {
-      setLoading(false);
-    }
-  }, [setBookings, setLoading, setError]);
+  /**
+   * Fetch user's bookings (as customer)
+   */
+  const fetchBookings = useCallback(
+    async (params?: { status?: string; page?: number; limit?: number }) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await bookingService.getMyBookings(params);
+        setBookings(response as unknown as BookingWithDetails[]);
+        return { success: true, data: response };
+      } catch (err) {
+        const message =
+          err instanceof ApiError ? err.message : "Failed to fetch bookings";
+        setError(message);
+        return { success: false, error: message };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setBookings, setLoading, setError],
+  );
 
-  // Get single booking details
+  /**
+   * Fetch owner's vehicle bookings
+   */
+  const fetchOwnerBookings = useCallback(
+    async (params?: { status?: string; page?: number; limit?: number }) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await bookingService.getOwnerBookings(params);
+        setBookings(response as unknown as BookingWithDetails[]);
+        return { success: true, data: response };
+      } catch (err) {
+        const message =
+          err instanceof ApiError ? err.message : "Failed to fetch bookings";
+        setError(message);
+        return { success: false, error: message };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setBookings, setLoading, setError],
+  );
+
+  /**
+   * Get single booking details
+   */
   const fetchBookingDetails = useCallback(
     async (bookingId: string) => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get<BookingWithDetails>(
-          `/bookings/${bookingId}`
-        );
-        setActiveBooking(response);
-        return response;
+        const response = await bookingService.getById(bookingId);
+        setActiveBooking(response as unknown as BookingWithDetails);
+        return { success: true, data: response };
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch booking"
-        );
-        return null;
+        const message =
+          err instanceof ApiError ? err.message : "Failed to fetch booking";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [setActiveBooking, setLoading, setError]
+    [setActiveBooking, setLoading, setError],
   );
 
-  // Cancel a booking
+  /**
+   * Cancel a booking
+   */
   const cancelBooking = useCallback(
-    async (bookingId: string, reason?: string) => {
+    async (bookingId: string, reason: string): Promise<BookingResult> => {
       setLoading(true);
       try {
-        await api.post(`/bookings/${bookingId}/cancel`, { reason });
+        await bookingService.cancel(bookingId, reason);
         updateBooking(bookingId, { status: "cancelled" as BookingStatus });
         return { success: true };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to cancel booking";
+        const apiError = err instanceof ApiError ? err : null;
+        const message = apiError?.message || "Failed to cancel booking";
         setError(message);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: message,
+          code: apiError?.code,
+        };
       } finally {
         setLoading(false);
       }
     },
-    [updateBooking, setLoading, setError]
+    [updateBooking, setLoading, setError],
   );
 
-  // Process payment for a booking
-  const processPayment = useCallback(
-    async (
-      bookingId: string,
-      paymentData: { method: string; amount: number }
-    ) => {
+  /**
+   * Confirm a booking (owner only)
+   */
+  const confirmBooking = useCallback(
+    async (bookingId: string): Promise<BookingResult> => {
       setLoading(true);
       try {
-        const response = await api.post<{
-          paymentId: string;
-          status: PaymentStatus;
-        }>(`/bookings/${bookingId}/pay`, paymentData);
-        updateBooking(bookingId, {
-          paymentStatus: response.status,
-          status: "confirmed" as BookingStatus,
-        });
-        return { success: true, paymentId: response.paymentId };
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Payment failed";
-        setError(message);
-        return { success: false, error: message };
-      } finally {
-        setLoading(false);
-      }
-    },
-    [updateBooking, setLoading, setError]
-  );
-
-  // Request booking modification
-  const requestModification = useCallback(
-    async (
-      bookingId: string,
-      modifications: {
-        newStartDate?: string;
-        newEndDate?: string;
-        additionalNotes?: string;
-      }
-    ) => {
-      setLoading(true);
-      try {
-        await api.post(`/bookings/${bookingId}/modify`, modifications);
+        await bookingService.confirmBooking(bookingId);
+        updateBooking(bookingId, { status: "confirmed" as BookingStatus });
         return { success: true };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Modification request failed";
+        const apiError = err instanceof ApiError ? err : null;
+        const message = apiError?.message || "Failed to confirm booking";
         setError(message);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: message,
+          code: apiError?.code,
+        };
       } finally {
         setLoading(false);
       }
     },
-    [setLoading, setError]
+    [updateBooking, setLoading, setError],
+  );
+
+  /**
+   * Start a trip (owner only)
+   */
+  const startTrip = useCallback(
+    async (bookingId: string): Promise<BookingResult> => {
+      setLoading(true);
+      try {
+        await bookingService.startTrip(bookingId);
+        updateBooking(bookingId, { status: "in_progress" as BookingStatus });
+        return { success: true };
+      } catch (err) {
+        const apiError = err instanceof ApiError ? err : null;
+        const message = apiError?.message || "Failed to start trip";
+        setError(message);
+        return {
+          success: false,
+          error: message,
+          code: apiError?.code,
+        };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [updateBooking, setLoading, setError],
+  );
+
+  /**
+   * Complete a booking
+   */
+  const completeBooking = useCallback(
+    async (bookingId: string): Promise<BookingResult> => {
+      setLoading(true);
+      try {
+        await bookingService.complete(bookingId);
+        updateBooking(bookingId, { status: "completed" as BookingStatus });
+        return { success: true };
+      } catch (err) {
+        const apiError = err instanceof ApiError ? err : null;
+        const message = apiError?.message || "Failed to complete booking";
+        setError(message);
+        return {
+          success: false,
+          error: message,
+          code: apiError?.code,
+        };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [updateBooking, setLoading, setError],
+  );
+
+  /**
+   * Create payment intent for a booking
+   */
+  const initiatePayment = useCallback(
+    async (bookingId: string) => {
+      setLoading(true);
+      try {
+        const response = await paymentService.createPaymentIntent(bookingId);
+        return { success: true, data: response };
+      } catch (err) {
+        const apiError = err instanceof ApiError ? err : null;
+        const message = apiError?.message || "Failed to initiate payment";
+        setError(message);
+        return {
+          success: false,
+          error: message,
+          code: apiError?.code,
+        };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, setError],
+  );
+
+  /**
+   * Confirm payment completion
+   */
+  const confirmPayment = useCallback(
+    async (
+      bookingId: string,
+      paymentIntentId: string,
+    ): Promise<BookingResult> => {
+      setLoading(true);
+      try {
+        await paymentService.confirmPayment(paymentIntentId);
+        updateBooking(bookingId, {
+          paymentStatus: "paid" as PaymentStatus,
+        });
+        return { success: true };
+      } catch (err) {
+        const apiError = err instanceof ApiError ? err : null;
+        const message = apiError?.message || "Payment confirmation failed";
+        setError(message);
+        return {
+          success: false,
+          error: message,
+          code: apiError?.code,
+        };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [updateBooking, setLoading, setError],
   );
 
   // Filter bookings based on current filters
@@ -166,12 +297,20 @@ export function useBookings() {
     statusFilter,
     dateFilter,
 
-    // Actions
+    // Actions - Customer
     fetchBookings,
     fetchBookingDetails,
     cancelBooking,
-    processPayment,
-    requestModification,
+    completeBooking,
+    initiatePayment,
+    confirmPayment,
+
+    // Actions - Owner
+    fetchOwnerBookings,
+    confirmBooking,
+    startTrip,
+
+    // State setters
     setActiveBooking,
     setStatusFilter,
     setDateFilter,

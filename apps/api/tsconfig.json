@@ -16,9 +16,7 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@travenest/database": ["../../packages/database/src"],
-      "@travenest/shared-types": ["../../packages/shared-types/src"]
+      "@/*": ["./src/*"]
     },
     "typeRoots": ["../../node_modules/@types", "./node_modules/@types"]
   },

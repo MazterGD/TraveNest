@@ -2,16 +2,26 @@ import { z } from "zod";
 
 export const registerSchema = z.object({
   body: z.object({
-    email: z.string().email("Invalid email address"),
+    email: z
+      .string()
+      .email("Invalid email address")
+      .max(254, "Email must be at most 254 characters"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")
+      .max(128, "Password must be at most 128 characters")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
       ),
-    firstName: z.string().min(2, "First name must be at least 2 characters"),
-    lastName: z.string().min(2, "Last name must be at least 2 characters"),
+    firstName: z
+      .string()
+      .min(2, "First name must be at least 2 characters")
+      .max(50, "First name must be at most 50 characters"),
+    lastName: z
+      .string()
+      .min(2, "Last name must be at least 2 characters")
+      .max(50, "Last name must be at most 50 characters"),
     phone: z.string().optional(),
     role: z.enum(["customer", "owner"]).default("customer"),
   }),
@@ -26,7 +36,7 @@ export const loginSchema = z.object({
 
 export const refreshTokenSchema = z.object({
   body: z.object({
-    refreshToken: z.string().min(1, "Refresh token is required"),
+    refreshToken: z.string().optional(), // Optional in body as it can come from cookies
   }),
 });
 
@@ -38,7 +48,7 @@ export const changePasswordSchema = z.object({
       .min(8, "New password must be at least 8 characters")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
       ),
   }),
 });
@@ -57,7 +67,7 @@ export const resetPasswordSchema = z.object({
       .min(8, "Password must be at least 8 characters")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
       ),
   }),
 });

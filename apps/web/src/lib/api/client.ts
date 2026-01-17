@@ -1,50 +1,249 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+/**
+ * API Client for TraveNest
+ * Industry-standard HTTP client with interceptors, error handling, and token refresh
+ */
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-interface ApiOptions {
+interface RequestConfig {
   method?: HttpMethod;
   body?: unknown;
   headers?: Record<string, string>;
   cache?: RequestCache;
   tags?: string[];
+  skipAuth?: boolean;
+  timeout?: number;
 }
 
-interface ApiError {
-  message: string;
-  status: number;
-  errors?: Record<string, string[]>;
+/**
+ * Standardized API Error class
+ */
+export class ApiError extends Error {
+  public readonly status: number;
+  public readonly code: string;
+  public readonly details?: unknown;
+  public readonly timestamp?: string;
+  public readonly requestId?: string;
+
+  constructor(
+    status: number,
+    message: string,
+    code: string = "UNKNOWN_ERROR",
+    details?: unknown,
+    meta?: { timestamp?: string; requestId?: string },
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.details = details;
+    this.timestamp = meta?.timestamp;
+    this.requestId = meta?.requestId;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+
+  /**
+   * Check if error is a specific HTTP status
+   */
+  isStatus(status: number): boolean {
+    return this.status === status;
+  }
+
+  /**
+   * Check if error is authentication related
+   */
+  isAuthError(): boolean {
+    return this.status === 401 || this.code === "TOKEN_EXPIRED";
+  }
+
+  /**
+   * Check if error is validation related
+   */
+  isValidationError(): boolean {
+    return this.status === 422 || this.code === "VALIDATION_ERROR";
+  }
+
+  /**
+   * Get validation errors as a map
+   */
+  getValidationErrors(): Record<string, string> {
+    if (!this.isValidationError() || !Array.isArray(this.details)) {
+      return {};
+    }
+    return (this.details as Array<{ field: string; message: string }>).reduce(
+      (acc, err) => {
+        acc[err.field] = err.message;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+  }
 }
 
+/**
+ * Token refresh state management
+ */
+let isRefreshing = false;
+let refreshSubscribers: Array<(token: string) => void> = [];
+
+const subscribeTokenRefresh = (callback: (token: string) => void) => {
+  refreshSubscribers.push(callback);
+};
+
+const onTokenRefreshed = (token: string) => {
+  refreshSubscribers.forEach((callback) => callback(token));
+  refreshSubscribers = [];
+};
+
+/**
+ * Main API Client class
+ */
 class ApiClient {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
+  private requestTimeout: number;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
     this.defaultHeaders = {
       "Content-Type": "application/json",
+      Accept: "application/json",
     };
+    this.requestTimeout = 30000; // 30 seconds
   }
 
+  /**
+   * Get authentication token from storage
+   */
   private getAuthToken(): string | null {
-    if (typeof window !== "undefined") {
+    if (typeof window === "undefined") return null;
+
+    try {
       const stored = localStorage.getItem("travelnest-auth");
       if (stored) {
         const parsed = JSON.parse(stored);
         return parsed.state?.token || null;
       }
+    } catch {
+      return null;
     }
     return null;
   }
 
+  /**
+   * Set authentication token in storage
+   */
+  private setAuthToken(token: string): void {
+    if (typeof window === "undefined") return;
+
+    try {
+      const stored = localStorage.getItem("travelnest-auth");
+      const parsed = stored ? JSON.parse(stored) : { state: {} };
+      parsed.state.token = token;
+      localStorage.setItem("travelnest-auth", JSON.stringify(parsed));
+    } catch {
+      // Ignore storage errors
+    }
+  }
+
+  /**
+   * Clear authentication token from storage
+   */
+  private clearAuthToken(): void {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem("travelnest-auth");
+  }
+
+  /**
+   * Attempt to refresh the access token
+   */
+  private async refreshAccessToken(): Promise<string> {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/refresh-token`, {
+        method: "POST",
+        headers: this.defaultHeaders,
+        credentials: "include", // Include cookies for refresh token
+      });
+
+      if (!response.ok) {
+        throw new Error("Token refresh failed");
+      }
+
+      const data = await response.json();
+      const newToken = data.data?.accessToken;
+
+      if (newToken) {
+        this.setAuthToken(newToken);
+        return newToken;
+      }
+
+      throw new Error("No token in refresh response");
+    } catch {
+      this.clearAuthToken();
+      throw new ApiError(
+        401,
+        "Session expired. Please login again.",
+        "TOKEN_EXPIRED",
+      );
+    }
+  }
+
+  /**
+   * Handle token refresh with request queuing
+   */
+  private async handleTokenRefresh(): Promise<string> {
+    if (isRefreshing) {
+      return new Promise((resolve) => {
+        subscribeTokenRefresh((token: string) => resolve(token));
+      });
+    }
+
+    isRefreshing = true;
+
+    try {
+      const newToken = await this.refreshAccessToken();
+      onTokenRefreshed(newToken);
+      return newToken;
+    } finally {
+      isRefreshing = false;
+    }
+  }
+
+  /**
+   * Create AbortController with timeout
+   */
+  private createAbortController(timeout: number): {
+    controller: AbortController;
+    timeoutId: NodeJS.Timeout;
+  } {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    return { controller, timeoutId };
+  }
+
+  /**
+   * Main request method
+   */
   private async request<T>(
     endpoint: string,
-    options: ApiOptions = {}
+    config: RequestConfig = {},
+    retryCount = 0,
   ): Promise<T> {
-    const { method = "GET", body, headers = {}, cache, tags } = options;
+    const {
+      method = "GET",
+      body,
+      headers = {},
+      cache,
+      tags,
+      skipAuth = false,
+      timeout = this.requestTimeout,
+    } = config;
 
-    const token = this.getAuthToken();
+    // Build headers
+    const token = skipAuth ? null : this.getAuthToken();
     const requestHeaders: Record<string, string> = {
       ...this.defaultHeaders,
       ...headers,
@@ -54,74 +253,189 @@ class ApiClient {
       requestHeaders["Authorization"] = `Bearer ${token}`;
     }
 
-    const config: RequestInit = {
+    // Generate request ID for tracing
+    const requestId = `web_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    requestHeaders["X-Request-ID"] = requestId;
+
+    // Build fetch config
+    const fetchConfig: RequestInit = {
       method,
       headers: requestHeaders,
-      cache,
+      credentials: "include", // Include cookies
     };
 
+    if (cache) fetchConfig.cache = cache;
     if (body && method !== "GET") {
-      config.body = JSON.stringify(body);
+      fetchConfig.body = JSON.stringify(body);
     }
 
-    // Add Next.js specific options
+    // Add Next.js specific options for caching
     if (tags) {
-      (config as { next?: { tags: string[] } }).next = { tags };
+      (fetchConfig as { next?: { tags: string[] } }).next = { tags };
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, config);
+    // Create abort controller for timeout
+    const { controller, timeoutId } = this.createAbortController(timeout);
+    fetchConfig.signal = controller.signal;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const error: ApiError = {
-        message: errorData.message || "An error occurred",
-        status: response.status,
-        errors: errorData.errors,
-      };
-      throw error;
+    try {
+      const url = `${this.baseUrl}${endpoint}`;
+      const response = await fetch(url, fetchConfig);
+
+      clearTimeout(timeoutId);
+
+      // Handle 204 No Content
+      if (response.status === 204) {
+        return {} as T;
+      }
+
+      const responseData = await response.json();
+
+      // Handle successful response
+      if (response.ok && responseData.success) {
+        return responseData.data as T;
+      }
+
+      // Handle error response
+      const error = responseData.error || {};
+      const apiError = new ApiError(
+        response.status,
+        error.message || "An error occurred",
+        error.code || "UNKNOWN_ERROR",
+        error.details,
+        responseData.meta,
+      );
+
+      // Handle token expiration with automatic refresh
+      if (
+        response.status === 401 &&
+        error.code === "TOKEN_EXPIRED" &&
+        retryCount === 0 &&
+        !skipAuth
+      ) {
+        try {
+          await this.handleTokenRefresh();
+          // Retry the original request with new token
+          return this.request<T>(endpoint, config, retryCount + 1);
+        } catch (refreshError) {
+          // Dispatch auth error event for global handling
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("auth:error", {
+                detail: { error: refreshError },
+              }),
+            );
+          }
+          throw refreshError;
+        }
+      }
+
+      throw apiError;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      // Handle abort/timeout
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new ApiError(408, "Request timeout", "REQUEST_TIMEOUT");
+      }
+
+      // Handle network errors
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new ApiError(
+          0,
+          "Network error. Please check your connection.",
+          "NETWORK_ERROR",
+        );
+      }
+
+      // Re-throw ApiError
+      if (error instanceof ApiError) {
+        throw error;
+      }
+
+      // Wrap unknown errors
+      throw new ApiError(
+        500,
+        error instanceof Error ? error.message : "An unexpected error occurred",
+        "UNKNOWN_ERROR",
+      );
     }
-
-    // Handle 204 No Content
-    if (response.status === 204) {
-      return {} as T;
-    }
-
-    return response.json();
   }
 
-  // Generic methods
-  get<T>(endpoint: string, options?: Omit<ApiOptions, "method" | "body">) {
-    return this.request<T>(endpoint, { ...options, method: "GET" });
+  // HTTP method shortcuts
+  get<T>(endpoint: string, config?: Omit<RequestConfig, "method" | "body">) {
+    return this.request<T>(endpoint, { ...config, method: "GET" });
   }
 
   post<T>(
     endpoint: string,
     body?: unknown,
-    options?: Omit<ApiOptions, "method" | "body">
+    config?: Omit<RequestConfig, "method" | "body">,
   ) {
-    return this.request<T>(endpoint, { ...options, method: "POST", body });
+    return this.request<T>(endpoint, { ...config, method: "POST", body });
   }
 
   put<T>(
     endpoint: string,
     body?: unknown,
-    options?: Omit<ApiOptions, "method" | "body">
+    config?: Omit<RequestConfig, "method" | "body">,
   ) {
-    return this.request<T>(endpoint, { ...options, method: "PUT", body });
+    return this.request<T>(endpoint, { ...config, method: "PUT", body });
   }
 
   patch<T>(
     endpoint: string,
     body?: unknown,
-    options?: Omit<ApiOptions, "method" | "body">
+    config?: Omit<RequestConfig, "method" | "body">,
   ) {
-    return this.request<T>(endpoint, { ...options, method: "PATCH", body });
+    return this.request<T>(endpoint, { ...config, method: "PATCH", body });
   }
 
-  delete<T>(endpoint: string, options?: Omit<ApiOptions, "method" | "body">) {
-    return this.request<T>(endpoint, { ...options, method: "DELETE" });
+  delete<T>(endpoint: string, config?: Omit<RequestConfig, "method" | "body">) {
+    return this.request<T>(endpoint, { ...config, method: "DELETE" });
+  }
+
+  /**
+   * Upload file with FormData
+   */
+  async upload<T>(
+    endpoint: string,
+    formData: FormData,
+    config?: Omit<RequestConfig, "method" | "body" | "headers">,
+  ): Promise<T> {
+    const token = this.getAuthToken();
+    const requestHeaders: Record<string, string> = {};
+
+    if (token) {
+      requestHeaders["Authorization"] = `Bearer ${token}`;
+    }
+
+    const requestId = `web_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    requestHeaders["X-Request-ID"] = requestId;
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: "POST",
+      headers: requestHeaders,
+      body: formData,
+      credentials: "include",
+    });
+
+    const responseData = await response.json();
+
+    if (response.ok && responseData.success) {
+      return responseData.data as T;
+    }
+
+    const error = responseData.error || {};
+    throw new ApiError(
+      response.status,
+      error.message || "Upload failed",
+      error.code || "UPLOAD_ERROR",
+      error.details,
+      responseData.meta,
+    );
   }
 }
 
+// Export singleton instance
 export const api = new ApiClient(API_BASE_URL);
-export type { ApiError };

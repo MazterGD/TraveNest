@@ -1,6 +1,8 @@
 import { z } from "zod";
 
+// ============================================
 // Auth Schemas
+// ============================================
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -14,13 +16,17 @@ export const registerSchema = z
       .min(8, "Password must be at least 8 characters")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain uppercase, lowercase, and number"
+        "Password must contain uppercase, lowercase, and number",
       ),
     confirmPassword: z.string(),
     firstName: z.string().min(2, "First name must be at least 2 characters"),
     lastName: z.string().min(2, "Last name must be at least 2 characters"),
-    phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
-    role: z.enum(["customer", "owner"]),
+    phone: z
+      .string()
+      .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number")
+      .optional()
+      .or(z.literal("")),
+    role: z.enum(["customer", "owner"]).default("customer"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -66,7 +72,7 @@ export const quotationRequestSchema = z
     {
       message: "Return date and time required for round trips",
       path: ["returnDate"],
-    }
+    },
   );
 
 // Vehicle Schema

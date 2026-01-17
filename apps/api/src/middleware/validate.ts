@@ -2,12 +2,15 @@ import { type Request, type Response, type NextFunction } from "express";
 import { type AnyZodObject, type ZodError } from "zod";
 import { ApiError } from "./errorHandler.js";
 
-// Validation middleware factory
+/**
+ * Validation middleware factory
+ * Validates request body, query, and params against a Zod schema
+ */
 export const validate = (schema: AnyZodObject) => {
   return async (
     req: Request,
     _res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       await schema.parseAsync({
@@ -18,12 +21,12 @@ export const validate = (schema: AnyZodObject) => {
       next();
     } catch (error) {
       const zodError = error as ZodError;
-      const errorMessages = zodError.errors.map((e) => ({
-        field: e.path.join("."),
+      const validationErrors = zodError.errors.map((e) => ({
+        field: e.path.slice(1).join("."), // Remove 'body.' prefix
         message: e.message,
       }));
 
-      next(new ApiError(400, "Validation failed", true));
+      next(ApiError.validationError(validationErrors));
     }
   };
 };
@@ -32,13 +35,13 @@ export const validate = (schema: AnyZodObject) => {
 export const sanitizeBody = (
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   if (req.body && typeof req.body === "object") {
     req.body = Object.fromEntries(
       Object.entries(req.body).filter(
-        ([_, value]) => value !== undefined && value !== null && value !== ""
-      )
+        ([_, value]) => value !== undefined && value !== null && value !== "",
+      ),
     );
   }
   next();
@@ -48,14 +51,14 @@ export const sanitizeBody = (
 export const trimStrings = (
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   if (req.body && typeof req.body === "object") {
     req.body = Object.fromEntries(
       Object.entries(req.body).map(([key, value]) => [
         key,
         typeof value === "string" ? value.trim() : value,
-      ])
+      ]),
     );
   }
   next();

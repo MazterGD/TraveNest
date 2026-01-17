@@ -1,5 +1,10 @@
+/**
+ * API Services for TraveNest
+ * Type-safe service layer for all API interactions
+ */
+
 import { api, ApiError } from "./client";
-import {
+import type {
   User,
   Vehicle,
   Booking,
@@ -7,7 +12,7 @@ import {
   Review,
   PaginatedResponse,
 } from "@/types";
-import {
+import type {
   LoginInput,
   RegisterInput,
   QuotationRequestInput,
@@ -18,75 +23,216 @@ import {
 } from "@/lib/validations";
 
 // ============================================
+// Type Definitions for API Responses
+// ============================================
+export interface AuthResponse {
+  user: User;
+  accessToken: string;
+}
+
+export interface TokenResponse {
+  accessToken: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+// ============================================
 // Auth Services
 // ============================================
 export const authService = {
+  /**
+   * Login with email and password
+   * @throws {ApiError} On invalid credentials or server error
+   */
   login: (data: LoginInput) =>
-    api.post<{ user: User; token: string }>("/auth/login", data),
+    api.post<AuthResponse>("/auth/login", data, { skipAuth: true }),
 
+  /**
+   * Register a new user
+   * @throws {ApiError} On validation error or email already exists
+   */
   register: (data: RegisterInput) =>
-    api.post<{ user: User; token: string }>("/auth/register", data),
+    api.post<AuthResponse>("/auth/register", data, { skipAuth: true }),
 
-  logout: () => api.post("/auth/logout"),
+  /**
+   * Logout current user
+   */
+  logout: () => api.post<MessageResponse>("/auth/logout"),
 
-  me: () => api.get<User>("/auth/me"),
+  /**
+   * Get current authenticated user
+   * @throws {ApiError} 401 if not authenticated
+   */
+  me: () => api.get<{ user: User }>("/auth/me"),
 
-  refreshToken: () => api.post<{ token: string }>("/auth/refresh"),
+  /**
+   * Refresh access token (uses HTTP-only cookie)
+   */
+  refreshToken: () =>
+    api.post<TokenResponse>("/auth/refresh-token", undefined, {
+      skipAuth: true,
+    }),
 
+  /**
+   * Request password reset email
+   */
   forgotPassword: (email: string) =>
-    api.post("/auth/forgot-password", { email }),
+    api.post<MessageResponse>(
+      "/auth/forgot-password",
+      { email },
+      { skipAuth: true },
+    ),
 
+  /**
+   * Reset password with token
+   */
   resetPassword: (token: string, password: string) =>
-    api.post("/auth/reset-password", { token, password }),
+    api.post<MessageResponse>(
+      "/auth/reset-password",
+      { token, password },
+      { skipAuth: true },
+    ),
+
+  /**
+   * Change password for authenticated user
+   */
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api.put<MessageResponse>("/auth/change-password", {
+      currentPassword,
+      newPassword,
+    }),
 };
 
 // ============================================
 // User Services
 // ============================================
 export const userService = {
+  /**
+   * Get current user's profile
+   */
   getProfile: () => api.get<User>("/users/profile"),
 
+  /**
+   * Update current user's profile
+   */
   updateProfile: (data: ProfileUpdateInput) =>
     api.patch<User>("/users/profile", data),
 
-  changePassword: (currentPassword: string, newPassword: string) =>
-    api.post("/users/change-password", { currentPassword, newPassword }),
-
-  uploadAvatar: (file: File) => {
+  /**
+   * Upload avatar image
+   */
+  uploadAvatar: async (file: File) => {
     const formData = new FormData();
     formData.append("avatar", file);
-    // Note: For file uploads, we'd need to handle differently
-    return api.post<{ url: string }>("/users/avatar", formData);
+    return api.upload<{ url: string }>("/users/avatar", formData);
   },
+
+  /**
+   * Get user by ID (admin only)
+   */
+  getById: (id: string) => api.get<User>(`/users/${id}`),
+
+  /**
+   * Delete user account
+   */
+  deleteAccount: () => api.delete<MessageResponse>("/users/account"),
 };
 
 // ============================================
 // Vehicle Services
 // ============================================
-export const vehicleService = {
-  getAll: (params?: { page?: number; limit?: number; type?: string }) =>
-    api.get<PaginatedResponse<Vehicle>>(
-      `/vehicles?${new URLSearchParams(
-        params as Record<string, string>
-      ).toString()}`
-    ),
+export interface VehicleSearchParams extends PaginationParams {
+  type?: string;
+  location?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  seats?: number;
+  startDate?: string;
+  endDate?: string;
+  sortBy?: "price" | "rating" | "newest";
+  sortOrder?: "asc" | "desc";
+}
 
+const buildQueryString = <T extends object>(params: T): string => {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      searchParams.append(key, String(value));
+    }
+  });
+  return searchParams.toString();
+};
+
+export const vehicleService = {
+  /**
+   * Get all vehicles with filtering and pagination
+   */
+  getAll: (params?: VehicleSearchParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<PaginatedResponse<Vehicle>>(`/vehicles${query}`);
+  },
+
+  /**
+   * Get vehicle by ID
+   */
   getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`),
 
+  /**
+   * Create a new vehicle (owner only)
+   */
   create: (data: VehicleInput) => api.post<Vehicle>("/vehicles", data),
 
+  /**
+   * Update a vehicle (owner only)
+   */
   update: (id: string, data: Partial<VehicleInput>) =>
     api.patch<Vehicle>(`/vehicles/${id}`, data),
 
-  delete: (id: string) => api.delete(`/vehicles/${id}`),
+  /**
+   * Delete a vehicle (owner only)
+   */
+  delete: (id: string) => api.delete<MessageResponse>(`/vehicles/${id}`),
 
+  /**
+   * Get vehicles by owner ID
+   */
   getByOwner: (ownerId: string) =>
     api.get<Vehicle[]>(`/vehicles/owner/${ownerId}`),
 
+  /**
+   * Get current user's vehicles
+   */
   getMyVehicles: () => api.get<Vehicle[]>("/vehicles/my"),
 
+  /**
+   * Set vehicle availability
+   */
   setAvailability: (id: string, available: boolean) =>
-    api.patch(`/vehicles/${id}/availability`, { available }),
+    api.patch<Vehicle>(`/vehicles/${id}/availability`, { available }),
+
+  /**
+   * Get vehicle availability for date range
+   */
+  getAvailability: (id: string, startDate: string, endDate: string) =>
+    api.get<{ available: boolean; unavailableDates: string[] }>(
+      `/vehicles/${id}/availability?startDate=${startDate}&endDate=${endDate}`,
+    ),
+
+  /**
+   * Upload vehicle images
+   */
+  uploadImages: async (id: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("images", file));
+    return api.upload<{ urls: string[] }>(`/vehicles/${id}/images`, formData);
+  },
 };
 
 // ============================================
@@ -94,94 +240,311 @@ export const vehicleService = {
 // ============================================
 export const quotationService = {
   // Customer endpoints
+  /**
+   * Request a quotation for a trip
+   */
   requestQuotation: (data: QuotationRequestInput) =>
     api.post<Quotation>("/quotations/request", data),
 
-  getMyRequests: () => api.get<Quotation[]>("/quotations/my-requests"),
+  /**
+   * Get all quotation requests by current user
+   */
+  getMyRequests: (params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<Quotation[]>(`/quotations/my-requests${query}`);
+  },
 
+  /**
+   * Get all quotes received for a request
+   */
   getQuotesForRequest: (requestId: string) =>
     api.get<Quotation[]>(`/quotations/request/${requestId}/quotes`),
 
+  /**
+   * Accept a quotation (creates booking)
+   */
   acceptQuotation: (id: string) =>
     api.post<Booking>(`/quotations/${id}/accept`),
 
-  rejectQuotation: (id: string) => api.post(`/quotations/${id}/reject`),
+  /**
+   * Reject a quotation
+   */
+  rejectQuotation: (id: string, reason?: string) =>
+    api.post<MessageResponse>(`/quotations/${id}/reject`, { reason }),
 
   // Owner endpoints
-  getPendingRequests: () => api.get<Quotation[]>("/quotations/pending"),
+  /**
+   * Get pending quotation requests for owner's area
+   */
+  getPendingRequests: (params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<Quotation[]>(`/quotations/pending${query}`);
+  },
 
+  /**
+   * Submit a quote for a request
+   */
   submitQuote: (data: QuotationResponseInput) =>
     api.post<Quotation>("/quotations/submit", data),
 
-  getMyQuotes: () => api.get<Quotation[]>("/quotations/my-quotes"),
+  /**
+   * Get all quotes submitted by current owner
+   */
+  getMyQuotes: (params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<Quotation[]>(`/quotations/my-quotes${query}`);
+  },
+
+  /**
+   * Get quotation by ID
+   */
+  getById: (id: string) => api.get<Quotation>(`/quotations/${id}`),
+
+  /**
+   * Withdraw a submitted quote
+   */
+  withdrawQuote: (id: string) =>
+    api.post<MessageResponse>(`/quotations/${id}/withdraw`),
 };
 
 // ============================================
 // Booking Services
 // ============================================
-export const bookingService = {
-  getAll: (params?: { status?: string; page?: number; limit?: number }) =>
-    api.get<PaginatedResponse<Booking>>(
-      `/bookings?${new URLSearchParams(
-        params as Record<string, string>
-      ).toString()}`
-    ),
+export interface BookingSearchParams extends PaginationParams {
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
 
+export const bookingService = {
+  /**
+   * Get all bookings with filtering (admin)
+   */
+  getAll: (params?: BookingSearchParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<PaginatedResponse<Booking>>(`/bookings${query}`);
+  },
+
+  /**
+   * Get booking by ID
+   */
   getById: (id: string) => api.get<Booking>(`/bookings/${id}`),
 
-  getMyBookings: () => api.get<Booking[]>("/bookings/my"),
+  /**
+   * Get current user's bookings as customer
+   */
+  getMyBookings: (params?: BookingSearchParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<Booking[]>(`/bookings/my-bookings${query}`);
+  },
 
+  /**
+   * Cancel a booking
+   */
   cancel: (id: string, reason: string) =>
-    api.post(`/bookings/${id}/cancel`, { reason }),
+    api.patch<Booking>(`/bookings/${id}/cancel`, { reason }),
 
-  complete: (id: string) => api.post(`/bookings/${id}/complete`),
+  /**
+   * Mark booking as complete
+   */
+  complete: (id: string) => api.post<Booking>(`/bookings/${id}/complete`),
 
   // Owner endpoints
-  getOwnerBookings: () => api.get<Booking[]>("/bookings/owner"),
+  /**
+   * Get bookings for owner's vehicles
+   */
+  getOwnerBookings: (params?: BookingSearchParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<Booking[]>(`/bookings/owner/vehicle-bookings${query}`);
+  },
 
-  confirmBooking: (id: string) => api.post(`/bookings/${id}/confirm`),
+  /**
+   * Confirm a booking
+   */
+  confirmBooking: (id: string) => api.patch<Booking>(`/bookings/${id}/confirm`),
+
+  /**
+   * Start a trip
+   */
+  startTrip: (id: string) => api.post<Booking>(`/bookings/${id}/start`),
+
+  /**
+   * End a trip
+   */
+  endTrip: (id: string) => api.post<Booking>(`/bookings/${id}/end`),
 };
 
 // ============================================
 // Review Services
 // ============================================
 export const reviewService = {
+  /**
+   * Create a review for a completed booking
+   */
   create: (data: ReviewInput) => api.post<Review>("/reviews", data),
 
-  getByVehicle: (vehicleId: string) =>
-    api.get<Review[]>(`/reviews/vehicle/${vehicleId}`),
+  /**
+   * Get reviews for a vehicle
+   */
+  getByVehicle: (vehicleId: string, params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<Review[]>(`/reviews/vehicle/${vehicleId}${query}`);
+  },
 
-  getByOwner: (ownerId: string) =>
-    api.get<Review[]>(`/reviews/owner/${ownerId}`),
+  /**
+   * Get reviews for an owner
+   */
+  getByOwner: (ownerId: string, params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<Review[]>(`/reviews/owner/${ownerId}${query}`);
+  },
 
+  /**
+   * Get reviews by current user
+   */
   getMyReviews: () => api.get<Review[]>("/reviews/my"),
+
+  /**
+   * Update a review
+   */
+  update: (id: string, data: Partial<ReviewInput>) =>
+    api.patch<Review>(`/reviews/${id}`, data),
+
+  /**
+   * Delete a review
+   */
+  delete: (id: string) => api.delete<MessageResponse>(`/reviews/${id}`),
+
+  /**
+   * Owner responds to a review
+   */
+  respond: (id: string, response: string) =>
+    api.post<Review>(`/reviews/${id}/respond`, { response }),
+};
+
+// ============================================
+// Payment Services
+// ============================================
+export interface PaymentIntent {
+  clientSecret: string;
+  amount: number;
+  currency: string;
+}
+
+export const paymentService = {
+  /**
+   * Create a payment intent for a booking
+   */
+  createPaymentIntent: (bookingId: string) =>
+    api.post<PaymentIntent>(`/payments/create-intent`, { bookingId }),
+
+  /**
+   * Confirm payment completion
+   */
+  confirmPayment: (paymentIntentId: string) =>
+    api.post<MessageResponse>(`/payments/confirm`, { paymentIntentId }),
+
+  /**
+   * Get payment history for current user
+   */
+  getMyPayments: (params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<
+      Array<{
+        id: string;
+        amount: number;
+        status: string;
+        createdAt: string;
+      }>
+    >(`/payments/my${query}`);
+  },
+
+  /**
+   * Request a refund
+   */
+  requestRefund: (paymentId: string, reason: string) =>
+    api.post<MessageResponse>(`/payments/${paymentId}/refund`, { reason }),
+};
+
+// ============================================
+// Notification Services
+// ============================================
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  data?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export const notificationService = {
+  /**
+   * Get notifications for current user
+   */
+  getAll: (params?: PaginationParams & { unreadOnly?: boolean }) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<Notification[]>(`/notifications${query}`);
+  },
+
+  /**
+   * Mark notification as read
+   */
+  markAsRead: (id: string) =>
+    api.patch<Notification>(`/notifications/${id}/read`),
+
+  /**
+   * Mark all notifications as read
+   */
+  markAllAsRead: () =>
+    api.post<MessageResponse>("/notifications/mark-all-read"),
+
+  /**
+   * Get unread count
+   */
+  getUnreadCount: () =>
+    api.get<{ count: number }>("/notifications/unread-count"),
+
+  /**
+   * Delete a notification
+   */
+  delete: (id: string) => api.delete<MessageResponse>(`/notifications/${id}`),
 };
 
 // ============================================
 // Search Services
 // ============================================
+export interface SearchParams {
+  pickup: string;
+  dropoff: string;
+  date: string;
+  passengers: number;
+  vehicleType?: string;
+}
+
 export const searchService = {
-  searchVehicles: (params: {
-    pickup: string;
-    dropoff: string;
-    date: string;
-    passengers: number;
-    vehicleType?: string;
-  }) => {
-    const searchParams = new URLSearchParams({
-      pickup: params.pickup,
-      dropoff: params.dropoff,
-      date: params.date,
-      passengers: String(params.passengers),
-      ...(params.vehicleType && { vehicleType: params.vehicleType }),
-    });
-    return api.get<Vehicle[]>(`/search/vehicles?${searchParams.toString()}`);
+  /**
+   * Search for available vehicles
+   */
+  searchVehicles: (params: SearchParams) => {
+    const query = buildQueryString(params);
+    return api.get<Vehicle[]>(`/search/vehicles?${query}`);
   },
 
+  /**
+   * Get popular routes
+   */
   getPopularRoutes: () =>
-    api.get<{ from: string; to: string; count: number }[]>(
-      "/search/popular-routes"
+    api.get<Array<{ from: string; to: string; count: number }>>(
+      "/search/popular-routes",
     ),
+
+  /**
+   * Get search suggestions
+   */
+  getSuggestions: (query: string) =>
+    api.get<string[]>(`/search/suggestions?q=${encodeURIComponent(query)}`),
 };
 
 // ============================================
@@ -189,49 +552,88 @@ export const searchService = {
 // ============================================
 export const adminService = {
   // User management
-  getUsers: (params?: { role?: string; status?: string; page?: number }) =>
-    api.get<PaginatedResponse<User>>(
-      `/admin/users?${new URLSearchParams(
-        params as Record<string, string>
-      ).toString()}`
-    ),
+  /**
+   * Get all users with filtering
+   */
+  getUsers: (
+    params?: PaginationParams & { role?: string; status?: string },
+  ) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<PaginatedResponse<User>>(`/admin/users${query}`);
+  },
 
+  /**
+   * Get user by ID
+   */
   getUserById: (id: string) => api.get<User>(`/admin/users/${id}`),
 
+  /**
+   * Update user status
+   */
   updateUserStatus: (id: string, status: string) =>
-    api.patch(`/admin/users/${id}/status`, { status }),
+    api.patch<User>(`/admin/users/${id}/status`, { status }),
 
   // Owner verification
+  /**
+   * Get pending owner verifications
+   */
   getPendingVerifications: () =>
     api.get<User[]>("/admin/verifications/pending"),
 
-  verifyOwner: (id: string) => api.post(`/admin/verifications/${id}/approve`),
+  /**
+   * Approve owner verification
+   */
+  verifyOwner: (id: string) =>
+    api.post<MessageResponse>(`/admin/verifications/${id}/approve`),
 
+  /**
+   * Reject owner verification
+   */
   rejectVerification: (id: string, reason: string) =>
-    api.post(`/admin/verifications/${id}/reject`, { reason }),
+    api.post<MessageResponse>(`/admin/verifications/${id}/reject`, { reason }),
 
   // Analytics
+  /**
+   * Get dashboard statistics
+   */
   getDashboardStats: () =>
     api.get<{
       totalUsers: number;
       totalBookings: number;
       totalRevenue: number;
       pendingVerifications: number;
+      activeVehicles: number;
+      monthlyGrowth: number;
     }>("/admin/stats"),
 
+  /**
+   * Get revenue report
+   */
   getRevenueReport: (period: "week" | "month" | "year") =>
-    api.get<{ date: string; amount: number }[]>(
-      `/admin/reports/revenue?period=${period}`
+    api.get<Array<{ date: string; amount: number }>>(
+      `/admin/reports/revenue?period=${period}`,
     ),
 
   // Disputes
-  getDisputes: () =>
-    api.get<
-      { id: string; bookingId: string; reason: string; status: string }[]
-    >("/admin/disputes"),
+  /**
+   * Get all disputes
+   */
+  getDisputes: (params?: PaginationParams & { status?: string }) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<
+      Array<{ id: string; bookingId: string; reason: string; status: string }>
+    >(`/admin/disputes${query}`);
+  },
 
-  resolveDispute: (id: string, resolution: string) =>
-    api.post(`/admin/disputes/${id}/resolve`, { resolution }),
+  /**
+   * Resolve a dispute
+   */
+  resolveDispute: (id: string, resolution: string, refundAmount?: number) =>
+    api.post<MessageResponse>(`/admin/disputes/${id}/resolve`, {
+      resolution,
+      refundAmount,
+    }),
 };
 
-export type { ApiError };
+// Re-export ApiError for convenience
+export { ApiError } from "./client";
