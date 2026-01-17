@@ -2,26 +2,22 @@
   "name": "travenest",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "npm run dev:web & npm run dev:api",
-    "dev:web": "npm run dev -w @travenest/web",
-    "dev:api": "npm run dev -w @travenest/api",
-    "build": "npm run build --workspaces --if-present",
-    "build:web": "npm run build -w @travenest/web",
-    "build:api": "npm run build -w @travenest/api",
-    "start": "npm run start --workspaces --if-present",
-    "start:web": "npm run start -w @travenest/web",
-    "start:api": "npm run start -w @travenest/api",
-    "lint": "npm run lint --workspaces --if-present",
-    "db:generate": "npm run generate -w @travenest/database",
-    "db:push": "npm run push -w @travenest/database",
-    "db:migrate": "npm run migrate -w @travenest/database",
-    "db:seed": "npm run seed -w @travenest/database",
-    "db:studio": "npm run studio -w @travenest/database",
+    "dev": "pnpm --filter @travenest/web dev & pnpm --filter @travenest/api dev",
+    "dev:web": "pnpm --filter @travenest/web dev",
+    "dev:api": "pnpm --filter @travenest/api dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @travenest/web build",
+    "build:api": "pnpm --filter @travenest/api build",
+    "start": "pnpm -r start",
+    "start:web": "pnpm --filter @travenest/web start",
+    "start:api": "pnpm --filter @travenest/api start",
+    "lint": "pnpm -r lint",
+    "db:generate": "pnpm --filter @travenest/database generate",
+    "db:push": "pnpm --filter @travenest/database push",
+    "db:migrate": "pnpm --filter @travenest/database migrate",
+    "db:seed": "pnpm --filter @travenest/database seed",
+    "db:studio": "pnpm --filter @travenest/database studio",
     "clean": "rimraf node_modules apps/*/node_modules packages/*/node_modules apps/*/.next apps/*/dist packages/*/dist"
   },
   "devDependencies": {
@@ -30,5 +26,6 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "packageManager": "pnpm@9.15.0"
 }
