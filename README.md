@@ -1,10 +1,51 @@
-# TravelNest 🚌
+# TraveNest
 
-**Sri Lanka's Premier Bus Rental Marketplace**
+**Sri Lanka's Premier Vehicle Rental Marketplace**
 
-TravelNest is a web-based bus rental marketplace platform designed to connect bus owners with customers seeking group transportation services across Sri Lanka.
+TraveNest is a web-based vehicle rental marketplace platform designed to connect vehicle owners with customers seeking transportation services across Sri Lanka.
 
-## 🌟 Features
+## Project Architecture
+
+This is a **monorepo** managed with npm workspaces:
+
+```
+travenest/
+├── apps/
+│   ├── web/                 # Next.js 16 frontend
+│   └── api/                 # Express.js backend API
+├── packages/
+│   ├── database/            # Prisma ORM & database schema
+│   └── shared-types/        # Shared TypeScript types
+└── package.json             # Root package.json with workspaces
+```
+
+## Quick Start
+
+```bash
+# Install all dependencies
+npm install
+
+# Set up environment variables
+cp apps/api/.env.example apps/api/.env
+# Edit apps/api/.env with your database credentials
+
+# Set up the database
+npm run db:push      # Push schema to database
+npm run db:seed      # Seed demo data (optional)
+
+# Start development (frontend + backend)
+npm run dev
+```
+
+| Script              | Description                             |
+| ------------------- | --------------------------------------- |
+| `npm run dev`       | Start all services (web:3000, api:5000) |
+| `npm run dev:web`   | Start frontend only                     |
+| `npm run dev:api`   | Start backend only                      |
+| `npm run build`     | Build all workspaces                    |
+| `npm run db:studio` | Open Prisma Studio                      |
+
+## Features
 
 ### For Customers
 
@@ -41,7 +82,7 @@ TravelNest is a web-based bus rental marketplace platform designed to connect bu
 - **Maps:** Google Maps API
 - **PWA:** Progressive Web App capabilities
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/
@@ -132,7 +173,7 @@ src/
 └── middleware.ts               # Next.js middleware (i18n routing)
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -174,7 +215,7 @@ npm run dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 🌐 Available Languages
+## Available Languages
 
 The platform supports three languages:
 
@@ -184,11 +225,11 @@ The platform supports three languages:
 
 Language can be switched from the navigation bar. URLs are automatically prefixed with the locale (e.g., `/en/`, `/si/`, `/ta/`).
 
-## 📱 PWA Support
+## PWA Support
 
 TravelNest is a Progressive Web App that can be installed on mobile devices and desktop computers for an app-like experience.
 
-## 🎨 Styling
+## Styling
 
 The project uses:
 
@@ -205,32 +246,32 @@ The project uses:
 - **Muted:** Soft Cyan (#C9E9F8) - Backgrounds and subtle elements
 - **Card:** Very Light Blue (#DAF3FB) - Card backgrounds
 
-## 📝 Scripts
+## Scripts
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm start` - Start production server
 - `npm run lint` - Run ESLint
 
-## 🔐 Environment Variables
+## Environment Variables
 
 See `.env.example` for all required environment variables.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Next.js team for the amazing framework
 - Tailwind CSS for the utility-first CSS framework
 - All contributors and supporters of this project
 
-## 📧 Contact
+## Contact
 
 For questions or support, please contact [support@travenest.lk](mailto:support@travenest.lk)
 

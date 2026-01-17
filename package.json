@@ -3,31 +3,35 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@ducanh2912/next-pwa": "^10.2.9",
-    "clsx": "^2.1.1",
-    "next": "^16.1.2",
-    "next-intl": "^4.5.3",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "react-icons": "^5.5.0",
-    "tailwind-merge": "^3.4.0",
-    "zustand": "^5.0.8"
+    "dev": "pnpm --filter @travenest/web dev & pnpm --filter @travenest/api dev",
+    "dev:web": "pnpm --filter @travenest/web dev",
+    "dev:api": "pnpm --filter @travenest/api dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @travenest/web build",
+    "build:api": "pnpm --filter @travenest/api build",
+    "start": "pnpm -r start",
+    "start:web": "pnpm --filter @travenest/web start",
+    "start:api": "pnpm --filter @travenest/api start",
+    "lint": "pnpm -r lint",
+    "test": "pnpm --filter @travenest/api test",
+    "test:watch": "pnpm --filter @travenest/api test:watch",
+    "test:coverage": "pnpm --filter @travenest/api test:coverage",
+    "db:generate": "pnpm --filter @travenest/database generate",
+    "db:push": "pnpm --filter @travenest/database push",
+    "db:migrate": "pnpm --filter @travenest/database migrate",
+    "db:migrate:deploy": "pnpm --filter @travenest/database migrate:deploy",
+    "db:seed": "pnpm --filter @travenest/database seed",
+    "db:studio": "pnpm --filter @travenest/database studio",
+    "clean": "rimraf node_modules apps/*/node_modules packages/*/node_modules apps/*/.next apps/*/dist packages/*/dist",
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "baseline-browser-mapping": "^2.9.14",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.3",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+    "rimraf": "^5.0.5",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
 }
