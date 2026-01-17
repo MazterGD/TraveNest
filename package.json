@@ -13,12 +13,18 @@
     "start:web": "pnpm --filter @travenest/web start",
     "start:api": "pnpm --filter @travenest/api start",
     "lint": "pnpm -r lint",
+    "test": "pnpm --filter @travenest/api test",
+    "test:watch": "pnpm --filter @travenest/api test:watch",
+    "test:coverage": "pnpm --filter @travenest/api test:coverage",
     "db:generate": "pnpm --filter @travenest/database generate",
     "db:push": "pnpm --filter @travenest/database push",
     "db:migrate": "pnpm --filter @travenest/database migrate",
+    "db:migrate:deploy": "pnpm --filter @travenest/database migrate:deploy",
     "db:seed": "pnpm --filter @travenest/database seed",
     "db:studio": "pnpm --filter @travenest/database studio",
-    "clean": "rimraf node_modules apps/*/node_modules packages/*/node_modules apps/*/.next apps/*/dist packages/*/dist"
+    "clean": "rimraf node_modules apps/*/node_modules packages/*/node_modules apps/*/.next apps/*/dist packages/*/dist",
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
     "rimraf": "^5.0.5",

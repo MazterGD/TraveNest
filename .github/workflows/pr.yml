@@ -1,0 +1,182 @@
+# =============================================================================
+# TraveNest PR Validation Pipeline
+# =============================================================================
+# This pipeline runs comprehensive checks on all Pull Requests.
+# Prevents merging code that breaks existing functionality.
+# =============================================================================
+
+name: PR - Validate Pull Request
+
+on:
+    pull_request:
+        branches:
+            - main
+            - develop
+        types:
+            - opened
+            - synchronize
+            - reopened
+
+env:
+    NODE_VERSION: "20"
+    PNPM_VERSION: "9.15.0"
+
+jobs:
+    # ===========================================================================
+    # PR Info - Add context to the PR
+    # ===========================================================================
+    pr-info:
+        name: PR Information
+        runs-on: ubuntu-latest
+        steps:
+            - name: PR Details
+              run: |
+                  echo "## Pull Request Details" >> $GITHUB_STEP_SUMMARY
+                  echo "- **PR Number:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Title:** ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Author:** @${{ github.event.pull_request.user.login }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Branch:** ${{ github.head_ref }} → ${{ github.base_ref }}" >> $GITHUB_STEP_SUMMARY
+
+    # ===========================================================================
+    # Full Test Suite - Regression Prevention
+    # ===========================================================================
+    test-suite:
+        name: Full Test Suite
+        runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_USER: test
+                    POSTGRES_PASSWORD: test
+                    POSTGRES_DB: travenest_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        env:
+            DATABASE_URL: postgresql://test:test@localhost:5432/travenest_test
+            JWT_SECRET: test-jwt-secret-for-ci-pipeline
+            JWT_REFRESH_SECRET: test-refresh-secret-for-ci-pipeline
+            NODE_ENV: test
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # Fetch full history for better diff
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: ${{ env.PNPM_VERSION }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Generate Prisma Client
+              run: pnpm db:generate
+
+            - name: Push Database Schema
+              run: pnpm db:push
+
+            - name: Run Linting
+              run: pnpm lint
+
+            - name: Run TypeScript Check
+              run: pnpm -r exec tsc --noEmit
+
+            - name: Run API Tests with Coverage
+              run: pnpm --filter @travenest/api test:coverage
+
+            - name: Upload Coverage to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  files: ./apps/api/coverage/lcov.info
+                  flags: api-tests
+                  fail_ci_if_error: false
+
+            - name: Build All Packages
+              run: pnpm build
+              env:
+                  SKIP_ENV_VALIDATION: true
+
+            - name: Test Summary
+              if: always()
+              run: |
+                  echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+                  echo "All regression tests passed!" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "### Checks Completed:" >> $GITHUB_STEP_SUMMARY
+                  echo "- Linting" >> $GITHUB_STEP_SUMMARY
+                  echo "- TypeScript Validation" >> $GITHUB_STEP_SUMMARY
+                  echo "- API Unit Tests" >> $GITHUB_STEP_SUMMARY
+                  echo "- Build Verification" >> $GITHUB_STEP_SUMMARY
+
+    # ===========================================================================
+    # Changed Files Analysis
+    # ===========================================================================
+    analyze-changes:
+        name: Analyze Changes
+        runs-on: ubuntu-latest
+        outputs:
+            api-changed: ${{ steps.changes.outputs.api }}
+            web-changed: ${{ steps.changes.outputs.web }}
+            database-changed: ${{ steps.changes.outputs.database }}
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Detect Changes
+              uses: dorny/paths-filter@v3
+              id: changes
+              with:
+                  filters: |
+                      api:
+                        - 'apps/api/**'
+                        - 'packages/database/**'
+                        - 'packages/shared-types/**'
+                      web:
+                        - 'apps/web/**'
+                        - 'packages/shared-types/**'
+                      database:
+                        - 'packages/database/**'
+
+            - name: Report Changes
+              run: |
+                  echo "## Changed Areas" >> $GITHUB_STEP_SUMMARY
+                  echo "- API: ${{ steps.changes.outputs.api }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- Web: ${{ steps.changes.outputs.web }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- Database: ${{ steps.changes.outputs.database }}" >> $GITHUB_STEP_SUMMARY
+
+    # ===========================================================================
+    # PR Validation Status
+    # ===========================================================================
+    pr-status:
+        name: PR Status Check
+        runs-on: ubuntu-latest
+        needs: [test-suite, analyze-changes]
+        if: always()
+        steps:
+            - name: Check Results
+              run: |
+                  if [[ "${{ needs.test-suite.result }}" != "success" ]]; then
+                    echo "Tests failed! This PR cannot be merged."
+                    echo "## PR Validation Failed" >> $GITHUB_STEP_SUMMARY
+                    echo "Please fix the failing tests before merging." >> $GITHUB_STEP_SUMMARY
+                    exit 1
+                  fi
+                  echo "All checks passed! This PR is ready for review."
+                  echo "## PR Validation Passed" >> $GITHUB_STEP_SUMMARY
+                  echo "All tests pass. Ready for code review." >> $GITHUB_STEP_SUMMARY

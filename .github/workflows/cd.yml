@@ -1,0 +1,391 @@
+# =============================================================================
+# TraveNest CD Pipeline - Production Deployment
+# =============================================================================
+# This pipeline deploys to production only after all CI checks pass.
+# Triggered on pushes to main branch or manual deployment.
+# =============================================================================
+
+name: CD - Deploy to Production
+
+on:
+    # Only deploy after successful merge to main
+    push:
+        branches:
+            - main
+    # Allow manual deployment
+    workflow_dispatch:
+        inputs:
+            environment:
+                description: "Deployment environment"
+                required: true
+                default: "production"
+                type: choice
+                options:
+                    - production
+                    - staging
+
+# Ensure only one deployment runs at a time
+concurrency:
+    group: deploy-${{ github.event.inputs.environment || 'production' }}
+    cancel-in-progress: false
+
+env:
+    NODE_VERSION: "20"
+    PNPM_VERSION: "9.15.0"
+
+jobs:
+    # ===========================================================================
+    # Pre-deployment Validation - Run Full CI Suite
+    # ===========================================================================
+    validate:
+        name: Pre-deployment Validation
+        runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_USER: test
+                    POSTGRES_PASSWORD: test
+                    POSTGRES_DB: travenest_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        env:
+            DATABASE_URL: postgresql://test:test@localhost:5432/travenest_test
+            JWT_SECRET: test-jwt-secret-for-ci-pipeline
+            JWT_REFRESH_SECRET: test-refresh-secret-for-ci-pipeline
+            NODE_ENV: test
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: ${{ env.PNPM_VERSION }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Generate Prisma Client
+              run: pnpm db:generate
+
+            - name: Push Database Schema (Test)
+              run: pnpm db:push
+
+            - name: Run Linting
+              run: pnpm lint
+
+            - name: Run TypeScript Check
+              run: pnpm -r exec tsc --noEmit
+
+            - name: Run All Tests
+              run: pnpm --filter @travenest/api test
+
+            - name: Build All Packages
+              run: pnpm build
+              env:
+                  SKIP_ENV_VALIDATION: true
+
+    # ===========================================================================
+    # Deploy API to Production
+    # ===========================================================================
+    deploy-api:
+        name: Deploy API
+        runs-on: ubuntu-latest
+        needs: validate
+        environment:
+            name: ${{ github.event.inputs.environment || 'production' }}
+            url: ${{ vars.API_URL }}
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: ${{ env.PNPM_VERSION }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Generate Prisma Client
+              run: pnpm db:generate
+
+            - name: Build API
+              run: pnpm build:api
+
+            # ===========================================================================
+            # Option 1: Deploy to Railway (Recommended for Node.js APIs)
+            # ===========================================================================
+            # - name: Deploy to Railway
+            #   uses: bervProject/railway-deploy@main
+            #   env:
+            #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+            #   with:
+            #     service: travenest-api
+
+            # ===========================================================================
+            # Option 2: Deploy to Render
+            # ===========================================================================
+            # - name: Deploy to Render
+            #   env:
+            #     RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+            #     RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+            #   run: |
+            #     curl -X POST "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
+            #       -H "Authorization: Bearer $RENDER_API_KEY"
+
+            # ===========================================================================
+            # Option 3: Deploy to DigitalOcean App Platform
+            # ===========================================================================
+            # - name: Deploy to DigitalOcean
+            #   uses: digitalocean/app_action@v1.1.5
+            #   with:
+            #     app_name: travenest-api
+            #     token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+            # ===========================================================================
+            # Option 4: Deploy to AWS (ECS/Elastic Beanstalk)
+            # ===========================================================================
+            # - name: Configure AWS Credentials
+            #   uses: aws-actions/configure-aws-credentials@v4
+            #   with:
+            #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            #     aws-region: ${{ vars.AWS_REGION }}
+            #
+            # - name: Deploy to Elastic Beanstalk
+            #   uses: einaregilsson/beanstalk-deploy@v21
+            #   with:
+            #     aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            #     aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            #     application_name: travenest-api
+            #     environment_name: travenest-api-production
+            #     version_label: ${{ github.sha }}
+            #     region: ${{ vars.AWS_REGION }}
+
+            # ===========================================================================
+            # Option 5: Deploy Docker to any Registry + Server
+            # ===========================================================================
+            # - name: Login to Docker Hub
+            #   uses: docker/login-action@v3
+            #   with:
+            #     username: ${{ secrets.DOCKER_USERNAME }}
+            #     password: ${{ secrets.DOCKER_PASSWORD }}
+            #
+            # - name: Build and Push Docker Image
+            #   uses: docker/build-push-action@v5
+            #   with:
+            #     context: .
+            #     file: ./apps/api/Dockerfile
+            #     push: true
+            #     tags: |
+            #       ${{ secrets.DOCKER_USERNAME }}/travenest-api:latest
+            #       ${{ secrets.DOCKER_USERNAME }}/travenest-api:${{ github.sha }}
+
+            - name: Deployment Placeholder
+              run: |
+                  echo "API Deployment would happen here"
+                  echo "Configure one of the deployment options above based on your hosting provider"
+                  echo "Build artifacts are ready in apps/api/dist/"
+
+    # ===========================================================================
+    # Deploy Web to Production
+    # ===========================================================================
+    deploy-web:
+        name: Deploy Web
+        runs-on: ubuntu-latest
+        needs: validate
+        environment:
+            name: ${{ github.event.inputs.environment || 'production' }}
+            url: ${{ vars.WEB_URL }}
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: ${{ env.PNPM_VERSION }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Generate Prisma Client
+              run: pnpm db:generate
+
+            - name: Build Web
+              run: pnpm build:web
+              env:
+                  SKIP_ENV_VALIDATION: true
+                  NEXT_PUBLIC_API_URL: ${{ vars.API_URL }}
+
+            # ===========================================================================
+            # Option 1: Deploy to Vercel (Recommended for Next.js)
+            # ===========================================================================
+            # - name: Deploy to Vercel
+            #   uses: amondnet/vercel-action@v25
+            #   with:
+            #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
+            #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+            #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+            #     vercel-args: '--prod'
+
+            # ===========================================================================
+            # Option 2: Deploy to Netlify
+            # ===========================================================================
+            # - name: Deploy to Netlify
+            #   uses: nwtgck/actions-netlify@v2.0
+            #   with:
+            #     publish-dir: './apps/web/.next'
+            #     production-branch: main
+            #     github-token: ${{ secrets.GITHUB_TOKEN }}
+            #     deploy-message: "Deploy from GitHub Actions"
+            #   env:
+            #     NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+            #     NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+            # ===========================================================================
+            # Option 3: Deploy to Cloudflare Pages
+            # ===========================================================================
+            # - name: Deploy to Cloudflare Pages
+            #   uses: cloudflare/pages-action@v1
+            #   with:
+            #     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            #     accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+            #     projectName: travenest-web
+            #     directory: apps/web/.next
+
+            - name: Deployment Placeholder
+              run: |
+                  echo "Web Deployment would happen here"
+                  echo "Configure one of the deployment options above based on your hosting provider"
+                  echo "Build artifacts are ready in apps/web/.next/"
+
+    # ===========================================================================
+    # Run Database Migrations
+    # ===========================================================================
+    migrate-database:
+        name: Run Database Migrations
+        runs-on: ubuntu-latest
+        needs: validate
+        environment:
+            name: ${{ github.event.inputs.environment || 'production' }}
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: ${{ env.PNPM_VERSION }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Generate Prisma Client
+              run: pnpm db:generate
+
+            # - name: Run Database Migrations
+            #   run: pnpm --filter @travenest/database migrate:deploy
+            #   env:
+            #     DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+            - name: Migration Placeholder
+              run: |
+                  echo "Database migrations would run here"
+                  echo "Uncomment the migration step and add DATABASE_URL secret"
+
+    # ===========================================================================
+    # Post-deployment Health Check
+    # ===========================================================================
+    health-check:
+        name: Post-deployment Health Check
+        runs-on: ubuntu-latest
+        needs: [deploy-api, deploy-web]
+        steps:
+            - name: Wait for Deployment
+              run: sleep 30
+
+            # - name: Check API Health
+            #   run: |
+            #     response=$(curl -s -o /dev/null -w "%{http_code}" ${{ vars.API_URL }}/health)
+            #     if [ $response != "200" ]; then
+            #       echo "API health check failed with status: $response"
+            #       exit 1
+            #     fi
+            #     echo "API is healthy"
+
+            # - name: Check Web Health
+            #   run: |
+            #     response=$(curl -s -o /dev/null -w "%{http_code}" ${{ vars.WEB_URL }})
+            #     if [ $response != "200" ]; then
+            #       echo "Web health check failed with status: $response"
+            #       exit 1
+            #     fi
+            #     echo "Web is healthy"
+
+            - name: Health Check Placeholder
+              run: |
+                  echo "Health checks would run here"
+                  echo "Uncomment health check steps and configure API_URL and WEB_URL variables"
+
+    # ===========================================================================
+    # Notify on Deployment
+    # ===========================================================================
+    notify:
+        name: Deployment Notification
+        runs-on: ubuntu-latest
+        needs: [deploy-api, deploy-web, migrate-database, health-check]
+        if: always()
+        steps:
+            - name: Send Success Notification
+              if: ${{ needs.deploy-api.result == 'success' && needs.deploy-web.result == 'success' }}
+              run: |
+                  echo "Deployment successful!"
+                  echo "API: ${{ vars.API_URL }}"
+                  echo "Web: ${{ vars.WEB_URL }}"
+                  # Add Slack/Discord notification here
+                  # curl -X POST -H 'Content-type: application/json' \
+                  #   --data '{"text":"TraveNest deployed successfully to production!"}' \
+                  #   ${{ secrets.SLACK_WEBHOOK_URL }}
+
+            - name: Send Failure Notification
+              if: ${{ needs.deploy-api.result == 'failure' || needs.deploy-web.result == 'failure' }}
+              run: |
+                  echo "Deployment failed!"
+                  # Add Slack/Discord notification here
+                  # curl -X POST -H 'Content-type: application/json' \
+                  #   --data '{"text":"TraveNest deployment failed! Check GitHub Actions for details."}' \
+                  #   ${{ secrets.SLACK_WEBHOOK_URL }}

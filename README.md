@@ -1,10 +1,10 @@
-# TraveNest 🚌
+# TraveNest
 
 **Sri Lanka's Premier Vehicle Rental Marketplace**
 
 TraveNest is a web-based vehicle rental marketplace platform designed to connect vehicle owners with customers seeking transportation services across Sri Lanka.
 
-## 🏗️ Project Architecture
+## Project Architecture
 
 This is a **monorepo** managed with npm workspaces:
 
@@ -19,7 +19,7 @@ travenest/
 └── package.json             # Root package.json with workspaces
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Install all dependencies
@@ -45,7 +45,7 @@ npm run dev
 | `npm run build`     | Build all workspaces                    |
 | `npm run db:studio` | Open Prisma Studio                      |
 
-## ✨ Features
+## Features
 
 ### For Customers
 
@@ -82,7 +82,7 @@ npm run dev
 - **Maps:** Google Maps API
 - **PWA:** Progressive Web App capabilities
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/
@@ -173,7 +173,7 @@ src/
 └── middleware.ts               # Next.js middleware (i18n routing)
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -215,7 +215,7 @@ npm run dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 🌐 Available Languages
+## Available Languages
 
 The platform supports three languages:
 
@@ -225,11 +225,11 @@ The platform supports three languages:
 
 Language can be switched from the navigation bar. URLs are automatically prefixed with the locale (e.g., `/en/`, `/si/`, `/ta/`).
 
-## 📱 PWA Support
+## PWA Support
 
 TravelNest is a Progressive Web App that can be installed on mobile devices and desktop computers for an app-like experience.
 
-## 🎨 Styling
+## Styling
 
 The project uses:
 
@@ -246,32 +246,32 @@ The project uses:
 - **Muted:** Soft Cyan (#C9E9F8) - Backgrounds and subtle elements
 - **Card:** Very Light Blue (#DAF3FB) - Card backgrounds
 
-## 📝 Scripts
+## Scripts
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm start` - Start production server
 - `npm run lint` - Run ESLint
 
-## 🔐 Environment Variables
+## Environment Variables
 
 See `.env.example` for all required environment variables.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Next.js team for the amazing framework
 - Tailwind CSS for the utility-first CSS framework
 - All contributors and supporters of this project
 
-## 📧 Contact
+## Contact
 
 For questions or support, please contact [support@travenest.lk](mailto:support@travenest.lk)
 

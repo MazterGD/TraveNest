@@ -2,7 +2,7 @@
 
 Express.js backend API for the TraveNest vehicle rental management system.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # From the root directory
@@ -13,7 +13,7 @@ npm run dev:api
 npm run dev
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 apps/api/
@@ -36,7 +36,7 @@ apps/api/
 └── tsconfig.json
 ```
 
-## 🔗 API Endpoints
+## API Endpoints
 
 ### Authentication
 
@@ -90,7 +90,7 @@ apps/api/
 | POST   | `/api/v1/reviews`                | Create review                |
 | POST   | `/api/v1/payments/create-intent` | Create Stripe payment intent |
 
-## 🔧 Environment Variables
+## Environment Variables
 
 Copy `.env.example` to `.env` and configure:
 
@@ -102,7 +102,7 @@ JWT_SECRET=your-secret
 STRIPE_SECRET_KEY=sk_test_...
 ```
 
-## 🗄️ Database
+## Database
 
 This API uses Prisma with PostgreSQL. Run migrations:
 
@@ -114,7 +114,7 @@ npm run db:seed       # Seed demo data
 npm run db:studio     # Open Prisma Studio
 ```
 
-## 🛡️ Authentication
+## Authentication
 
 The API uses JWT tokens:
 
@@ -126,7 +126,7 @@ The API uses JWT tokens:
 Authorization: Bearer<access_token>;
 ```
 
-## 📦 Scripts
+## Scripts
 
 | Script          | Description                              |
 | --------------- | ---------------------------------------- |
