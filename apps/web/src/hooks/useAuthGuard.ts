@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuthStore } from "@/store";
 import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
@@ -31,6 +31,23 @@ interface UseAuthGuardResult {
   isAuthorized: boolean;
 }
 
+// Simple external store for mounted state
+const mountedSubscribers = new Set<() => void>();
+let isMountedGlobal = false;
+
+function subscribeMounted(callback: () => void) {
+  mountedSubscribers.add(callback);
+  return () => mountedSubscribers.delete(callback);
+}
+
+function getMountedSnapshot() {
+  return isMountedGlobal;
+}
+
+function getMountedServerSnapshot() {
+  return false;
+}
+
 /**
  * Hook for protecting routes based on authentication state and user roles.
  * Handles redirects automatically and prevents flash of unauthorized content.
@@ -42,63 +59,72 @@ export function useAuthGuard(options: UseAuthGuardOptions): UseAuthGuardResult {
   const locale = (params.locale as string) || "en";
 
   const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const hasRedirected = useRef(false);
 
+  // Use useSyncExternalStore to track mounting without causing cascading renders
+  const isMounted = useSyncExternalStore(
+    subscribeMounted,
+    getMountedSnapshot,
+    getMountedServerSnapshot,
+  );
+
+  // Mark as mounted on first render (client-side only)
   useEffect(() => {
-    // Wait for auth store to hydrate from localStorage
-    if (authLoading) {
-      return;
+    if (!isMountedGlobal) {
+      isMountedGlobal = true;
+      mountedSubscribers.forEach((cb) => cb());
+    }
+  }, []);
+
+  // Calculate authorization synchronously (no setState needed)
+  const { authorized, redirectPath } = useMemo(() => {
+    if (authLoading || !isMounted) {
+      return { authorized: false, redirectPath: null };
     }
 
-    let authorized = false;
-    let redirectPath: string | null = null;
+    let auth = false;
+    let redirect: string | null = null;
 
     switch (type) {
       case "guest":
         // Guest routes (login, register) - redirect to dashboard if logged in
         if (isAuthenticated && user) {
-          authorized = false;
-          redirectPath = redirectTo || getDashboardUrl(user, locale);
+          auth = false;
+          redirect = redirectTo || getDashboardUrl(user, locale);
         } else {
-          authorized = true;
+          auth = true;
         }
         break;
 
       case "auth":
         // Protected routes - redirect to login if not logged in
         if (isAuthenticated && user) {
-          authorized = true;
+          auth = true;
         } else {
-          authorized = false;
-          redirectPath = redirectTo || `/${locale}/login`;
+          auth = false;
+          redirect = redirectTo || `/${locale}/login`;
         }
         break;
 
       case "role":
         // Role-based routes - check if user has required role
         if (!isAuthenticated || !user) {
-          authorized = false;
-          redirectPath = redirectTo || `/${locale}/login`;
+          auth = false;
+          redirect = redirectTo || `/${locale}/login`;
         } else if (
           allowedRoles.length > 0 &&
           !allowedRoles.includes(user.role)
         ) {
-          authorized = false;
+          auth = false;
           // Redirect to their appropriate dashboard instead
-          redirectPath = getDashboardUrl(user, locale);
+          redirect = getDashboardUrl(user, locale);
         } else {
-          authorized = true;
+          auth = true;
         }
         break;
     }
 
-    setIsAuthorized(authorized);
-    setIsChecking(false);
-
-    if (redirectPath) {
-      router.replace(redirectPath);
-    }
+    return { authorized: auth, redirectPath: redirect };
   }, [
     type,
     allowedRoles,
@@ -106,13 +132,26 @@ export function useAuthGuard(options: UseAuthGuardOptions): UseAuthGuardResult {
     isAuthenticated,
     user,
     authLoading,
-    router,
     locale,
+    isMounted,
   ]);
 
+  // Handle redirect in effect (but don't set state)
+  useEffect(() => {
+    if (redirectPath && !hasRedirected.current) {
+      hasRedirected.current = true;
+      router.replace(redirectPath);
+    }
+  }, [redirectPath, router]);
+
+  // Reset redirect flag when auth state changes
+  useEffect(() => {
+    hasRedirected.current = false;
+  }, [isAuthenticated, user]);
+
   return {
-    isLoading: authLoading || isChecking,
-    isAuthorized,
+    isLoading: authLoading || !isMounted,
+    isAuthorized: authorized,
   };
 }
 

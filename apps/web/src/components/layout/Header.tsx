@@ -3,11 +3,16 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { FaBars, FaTimes, FaSignOutAlt, FaUser } from "react-icons/fa";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuthStore } from "@/store";
 import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
+
+// Simple subscription for hydration state - avoids setState in useEffect
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 export function Header() {
   const t = useTranslations("navigation");
@@ -15,13 +20,15 @@ export function Header() {
   const router = useRouter();
   const locale = params.locale as string;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
 
-  // Wait for hydration to complete before showing auth-dependent UI
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Use useSyncExternalStore to safely detect hydration without setState in effect
+  const isHydrated = useSyncExternalStore(
+    emptySubscribe,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
+
+  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
 
   const handleLogout = () => {
     logout();
@@ -30,7 +37,8 @@ export function Header() {
   };
 
   // Show guest UI during SSR and initial hydration
-  const showAuthenticatedUI = mounted && !isLoading && isAuthenticated && user;
+  const showAuthenticatedUI =
+    isHydrated && !isLoading && isAuthenticated && user;
 
   const navigation = [
     { name: t("home"), href: `/${locale}` },

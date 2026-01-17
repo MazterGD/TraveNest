@@ -4,23 +4,14 @@ import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
-import { useRouter, useParams } from "next/navigation";
 import { useOwnerGuard } from "@/hooks";
 
 export default function OwnerDashboardPage() {
   const t = useTranslations("common");
-  const { user, logout } = useAuthStore();
-  const router = useRouter();
-  const params = useParams();
-  const locale = params.locale as string;
+  const { user } = useAuthStore();
 
   // Protect this route - only vehicle owners can access
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
-
-  const handleLogout = () => {
-    logout();
-    router.push(`/${locale}`);
-  };
 
   // Show loading while checking auth state
   if (guardLoading || !isAuthorized || !user) {

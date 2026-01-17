@@ -4,23 +4,14 @@ import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
-import { useRouter, useParams } from "next/navigation";
 import { useAdminGuard } from "@/hooks";
 
 export default function AdminDashboardPage() {
   const t = useTranslations("common");
-  const { user, logout } = useAuthStore();
-  const router = useRouter();
-  const params = useParams();
-  const locale = params.locale as string;
+  const { user } = useAuthStore();
 
   // Protect this route - only admins can access
   const { isLoading: guardLoading, isAuthorized } = useAdminGuard();
-
-  const handleLogout = () => {
-    logout();
-    router.push(`/${locale}`);
-  };
 
   // Show loading while checking auth state
   if (guardLoading || !isAuthorized || !user) {
