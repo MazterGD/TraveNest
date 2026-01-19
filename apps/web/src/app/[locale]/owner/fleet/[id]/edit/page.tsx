@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -28,14 +28,15 @@ interface FormData {
   gpsEnabled: boolean;
 }
 
-export default function AddVehiclePage() {
+export default function EditVehiclePage() {
   const { user } = useAuthStore();
   const params = useParams();
-  const locale = params.locale as string;
+  const vehicleId = params.id as string;
   const [activeSection, setActiveSection] = useState<FormSection>("basic");
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [primaryPhoto, setPrimaryPhoto] = useState<File | null>(null);
   const [additionalPhotos, setAdditionalPhotos] = useState<File[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState<FormData>({
     registration: "",
@@ -50,11 +51,38 @@ export default function AddVehiclePage() {
     description: "",
     pricePerKm: "",
     pricePerDay: "",
+    driverAllowance: "",
     gpsEnabled: false,
   });
 
   // Protect this route - only vehicle owners can access
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
+  const locale = params.locale as string;
+
+  useEffect(() => {
+    // TODO: Fetch vehicle data from API
+    // Mock data for now
+    setTimeout(() => {
+      setFormData({
+        registration: "ABC-1234",
+        type: "luxury",
+        make: "Ashok Leyland",
+        model: "2820",
+        year: "2022",
+        capacity: "45",
+        color: "White",
+        acType: "full-ac",
+        condition: "excellent",
+        description: "Well-maintained luxury coach with modern amenities",
+        pricePerKm: "85",
+        pricePerDay: "25000",
+        driverAllowance: "2500",
+        gpsEnabled: true,
+      });
+      setSelectedAmenities(["wifi", "ac", "usb", "gps"]);
+      setLoading(false);
+    }, 500);
+  }, [vehicleId]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -100,6 +128,7 @@ export default function AddVehiclePage() {
     e.preventDefault();
     // TODO: Implement form submission
     console.log({
+      vehicleId,
       formData,
       selectedAmenities,
       primaryPhoto,
@@ -107,8 +136,8 @@ export default function AddVehiclePage() {
     });
   };
 
-  // Show loading while checking auth state
-  if (guardLoading || !isAuthorized || !user) {
+  // Show loading while checking auth state or fetching data
+  if (guardLoading || !isAuthorized || !user || loading) {
     return (
       <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
@@ -132,10 +161,10 @@ export default function AddVehiclePage() {
               Back to Fleet
             </Link>
             <h1 className="text-xl font-semibold text-gray-900">
-              Add New Vehicle
+              Edit Vehicle - {formData.registration}
             </h1>
             <p className="mt-0.5 text-sm text-gray-500">
-              Fill in the details to list your bus
+              Update vehicle information
             </p>
           </div>
         </header>
@@ -171,7 +200,7 @@ export default function AddVehiclePage() {
                         Vehicle Details
                       </h3>
                       <p className="mb-6 text-sm text-gray-600">
-                        Enter the basic information about your vehicle
+                        Update the basic information about your vehicle
                       </p>
                     </div>
 
@@ -187,7 +216,7 @@ export default function AddVehiclePage() {
                           value={formData.registration}
                           onChange={handleChange}
                           placeholder="ABC-1234"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         />
                       </div>
 
@@ -200,7 +229,7 @@ export default function AddVehiclePage() {
                           required
                           value={formData.type}
                           onChange={handleChange}
-                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         >
                           <option value="">Select type</option>
                           <option value="luxury">Luxury Coach</option>
@@ -221,7 +250,7 @@ export default function AddVehiclePage() {
                           value={formData.make}
                           onChange={handleChange}
                           placeholder="e.g., Ashok Leyland"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         />
                       </div>
 
@@ -236,7 +265,7 @@ export default function AddVehiclePage() {
                           value={formData.model}
                           onChange={handleChange}
                           placeholder="e.g., 2820"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         />
                       </div>
 
@@ -251,7 +280,7 @@ export default function AddVehiclePage() {
                           value={formData.year}
                           onChange={handleChange}
                           placeholder="2022"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         />
                       </div>
 
@@ -266,7 +295,7 @@ export default function AddVehiclePage() {
                           value={formData.capacity}
                           onChange={handleChange}
                           placeholder="45"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         />
                       </div>
 
@@ -281,7 +310,7 @@ export default function AddVehiclePage() {
                           value={formData.color}
                           onChange={handleChange}
                           placeholder="White"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         />
                       </div>
 
@@ -294,7 +323,7 @@ export default function AddVehiclePage() {
                           required
                           value={formData.acType}
                           onChange={handleChange}
-                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         >
                           <option value="">Select AC type</option>
                           <option value="full-ac">Full AC</option>
@@ -312,7 +341,7 @@ export default function AddVehiclePage() {
                           required
                           value={formData.condition}
                           onChange={handleChange}
-                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         >
                           <option value="">Select condition</option>
                           <option value="excellent">Excellent</option>
@@ -331,7 +360,7 @@ export default function AddVehiclePage() {
                           onChange={handleChange}
                           rows={4}
                           placeholder="Describe your vehicle, seating layout, and any special features..."
-                          className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         ></textarea>
                       </div>
                     </div>
@@ -346,7 +375,7 @@ export default function AddVehiclePage() {
                         Pricing Information
                       </h3>
                       <p className="mb-6 text-sm text-gray-600">
-                        Set your rental rates
+                        Update your rental rates
                       </p>
                     </div>
 
@@ -366,7 +395,7 @@ export default function AddVehiclePage() {
                             value={formData.pricePerKm}
                             onChange={handleChange}
                             placeholder="85"
-                            className="w-full rounded-lg border border-gray-300 py-2 pl-14 pr-3 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            className="w-full rounded-lg border border-gray-300 py-2 pl-14 pr-3 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                           />
                         </div>
                       </div>
@@ -391,7 +420,7 @@ export default function AddVehiclePage() {
                         </div>
                       </div>
 
-                      <div>
+                      <div className="md:col-span-2">
                         <label className="mb-2 block text-sm font-medium text-gray-700">
                           Driver Allowance per Day
                         </label>
@@ -413,44 +442,6 @@ export default function AddVehiclePage() {
                         </p>
                       </div>
                     </div>
-
-                    {formData.pricePerKm && formData.pricePerDay && (
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
-                        <div className="mb-3 text-sm font-medium text-gray-900">
-                          Sample Calculation
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between text-gray-600">
-                            <span>Distance: 150 km</span>
-                            <span>
-                              LKR{" "}
-                              {(
-                                parseFloat(formData.pricePerKm) * 150
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-gray-600">
-                            <span>1 Day rental</span>
-                            <span>
-                              LKR{" "}
-                              {parseFloat(
-                                formData.pricePerDay,
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-t border-gray-300 pt-2 font-medium text-gray-900">
-                            <span>Estimated Total</span>
-                            <span>
-                              LKR{" "}
-                              {(
-                                parseFloat(formData.pricePerKm) * 150 +
-                                parseFloat(formData.pricePerDay)
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -462,17 +453,17 @@ export default function AddVehiclePage() {
                         Vehicle Photos
                       </h3>
                       <p className="mb-6 text-sm text-gray-600">
-                        Upload clear photos of your vehicle
+                        Update vehicle photos
                       </p>
                     </div>
 
                     <div className="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-gray-400">
                       <FaUpload className="mx-auto mb-3 h-10 w-10 text-gray-400" />
                       <div className="mb-1 font-medium text-gray-900">
-                        Upload Primary Photo
+                        Upload New Primary Photo
                       </div>
                       <p className="mb-3 text-sm text-gray-600">
-                        This will be the main photo in listings
+                        This will replace the current main photo
                       </p>
                       <label className="inline-block cursor-pointer rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]">
                         Choose File
@@ -502,41 +493,6 @@ export default function AddVehiclePage() {
                         </div>
                       )}
                     </div>
-
-                    <div>
-                      <div className="mb-3 text-sm font-medium text-gray-900">
-                        Additional Photos (Optional)
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                        {[1, 2, 3, 4].map((i) => (
-                          <label
-                            key={i}
-                            className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-gray-400"
-                          >
-                            <div className="text-center">
-                              <FaUpload className="mx-auto mb-1 h-6 w-6 text-gray-400" />
-                              <span className="text-xs text-gray-500">
-                                Upload
-                              </span>
-                            </div>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  setAdditionalPhotos((prev) => [
-                                    ...prev,
-                                    file,
-                                  ]);
-                                }
-                              }}
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 )}
 
@@ -548,7 +504,7 @@ export default function AddVehiclePage() {
                         Amenities & Features
                       </h3>
                       <p className="mb-6 text-sm text-gray-600">
-                        Select available amenities
+                        Update available amenities
                       </p>
                     </div>
 
@@ -591,17 +547,17 @@ export default function AddVehiclePage() {
 
                 {/* Action Buttons */}
                 <div className="mt-8 flex max-w-3xl gap-3 border-t border-gray-200 pt-6">
-                  <button
-                    type="button"
-                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  <Link
+                    href={`/${locale}/owner/fleet`}
+                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                   >
-                    Save as Draft
-                  </button>
+                    Cancel
+                  </Link>
                   <button
                     type="submit"
                     className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
                   >
-                    Publish Vehicle
+                    Save Changes
                     <FaCheckCircle className="h-4 w-4" />
                   </button>
                 </div>

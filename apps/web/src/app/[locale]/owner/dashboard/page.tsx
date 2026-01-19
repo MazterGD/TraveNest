@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
@@ -23,6 +24,8 @@ import {
 
 export default function OwnerDashboardPage() {
   const t = useTranslations("common");
+  const params = useParams();
+  const locale = params.locale as string;
   const { user } = useAuthStore();
   const [quotationFilter, setQuotationFilter] = useState<
     "all" | "new" | "pending"
@@ -91,7 +94,7 @@ export default function OwnerDashboardPage() {
                 </p>
               </div>
               <Link
-                href="/owner/fleet/add"
+                href={`/${locale}/owner/fleet/add`}
                 className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
               >
                 <FaPlus className="h-4 w-4" />
@@ -183,7 +186,7 @@ export default function OwnerDashboardPage() {
             <div className="grid gap-4 md:grid-cols-3">
               {/* Add Vehicle - Primary Action */}
               <Link
-                href="/owner/fleet/add"
+                href={`/${locale}/owner/fleet/add`}
                 className="flex items-center gap-4 rounded-lg border-2 border-dashed border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50"
               >
                 <div className="rounded-full bg-gray-100 p-3">
@@ -197,7 +200,7 @@ export default function OwnerDashboardPage() {
 
               {/* Manage Fleet */}
               <Link
-                href="/owner/fleet"
+                href={`/${locale}/owner/fleet`}
                 className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300 hover:bg-gray-50"
               >
                 <div className="rounded-full bg-blue-100 p-3">
@@ -211,7 +214,7 @@ export default function OwnerDashboardPage() {
 
               {/* View All Quotes */}
               <Link
-                href="/owner/quotations"
+                href={`/${locale}/owner/quotations`}
                 className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300 hover:bg-gray-50"
               >
                 <div className="rounded-full bg-yellow-100 p-3">
@@ -240,7 +243,7 @@ export default function OwnerDashboardPage() {
                     </p>
                   </div>
                   <Link
-                    href="/owner/quotations"
+                    href={`/${locale}/owner/quotations`}
                     className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
                   >
                     View All
@@ -355,7 +358,7 @@ export default function OwnerDashboardPage() {
                     Upcoming Bookings
                   </h2>
                   <Link
-                    href="/owner/bookings"
+                    href={`/${locale}/owner/bookings`}
                     className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
                   >
                     View All
@@ -406,7 +409,7 @@ export default function OwnerDashboardPage() {
                     Fleet Overview
                   </h2>
                   <Link
-                    href="/owner/fleet"
+                    href={`/${locale}/owner/fleet`}
                     className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
                   >
                     Manage
