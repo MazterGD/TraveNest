@@ -81,3 +81,10 @@ export { InfoItem, InfoItemList } from "./InfoItem";
 
 // Quick Action Card - for dashboard quick actions
 export { QuickActionCard, QuickActionGrid } from "./QuickActionCard";
+
+// File Upload - for document uploads
+export {
+  FileUpload,
+  DocumentUploadGroup,
+  type UploadedFile,
+} from "./FileUpload";

@@ -41,6 +41,9 @@ export {
   // Admin
   adminService,
 
+  // Owner Registration
+  ownerRegistrationService,
+
   // Pagination
   type PaginationParams,
 } from "./services";

@@ -1,17 +1,67 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Card, LoadingSpinner } from "@/components/ui";
+import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
+import {
+  FaDollarSign,
+  FaCalendarAlt,
+  FaFileAlt,
+  FaStar,
+  FaBus,
+  FaPlus,
+  FaClipboardList,
+  FaArrowRight,
+  FaMapMarkerAlt,
+  FaUsers,
+  FaClock,
+} from "react-icons/fa";
 
 export default function OwnerDashboardPage() {
   const t = useTranslations("common");
   const { user } = useAuthStore();
+  const [quotationFilter, setQuotationFilter] = useState<
+    "all" | "new" | "pending"
+  >("all");
 
   // Protect this route - only vehicle owners can access
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
+
+  // Sample data - will be replaced with real API data
+  const metrics = {
+    totalRevenue: "LKR 0",
+    activeBookings: 0,
+    pendingQuotes: 0,
+    averageRating: 0,
+  };
+
+  const quotationRequests: Array<{
+    id: string;
+    customer: string;
+    route: string;
+    date: string;
+    passengers: number;
+    expiresIn: string;
+  }> = [];
+
+  const upcomingBookings: Array<{
+    id: string;
+    customer: string;
+    route: string;
+    date: string;
+    vehicle: string;
+  }> = [];
+
+  const fleetStats = {
+    active: 0,
+    inactive: 0,
+    pendingReview: 0,
+    utilization: 0,
+  };
 
   // Show loading while checking auth state
   if (guardLoading || !isAuthorized || !user) {
@@ -26,263 +76,398 @@ export default function OwnerDashboardPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-emerald-900">
-        <div className="container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {t("ownerDashboard", { defaultValue: "Owner Dashboard" })}
-            </h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              {t("welcomeBack", { defaultValue: "Welcome back" })},{" "}
-              {user.firstName}!
-            </p>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="border-b border-gray-200 bg-white">
+          <div className="mx-auto max-w-7xl px-6 py-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  {t("ownerDashboard", { defaultValue: "Owner Dashboard" })}
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                  {t("welcomeBack", { defaultValue: "Welcome back" })},{" "}
+                  {user.firstName}!
+                </p>
+              </div>
+              <Link
+                href="/owner/fleet/add"
+                className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+              >
+                <FaPlus className="h-4 w-4" />
+                Add Vehicle
+              </Link>
+            </div>
           </div>
+        </header>
 
-          {/* Quick Stats */}
+        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+          {/* Metrics Grid */}
           <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="bg-white p-6 shadow-sm dark:bg-gray-800">
+            {/* Total Revenue */}
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t("totalVehicles", { defaultValue: "Total Vehicles" })}
+                  <p className="text-sm font-medium text-gray-500">
+                    Total Revenue
                   </p>
-                  <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-                    0
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {metrics.totalRevenue}
                   </p>
                 </div>
-                <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/30">
-                  <svg
-                    className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                    />
-                  </svg>
+                <div className="rounded-full bg-green-100 p-3">
+                  <FaDollarSign className="h-6 w-6 text-green-600" />
                 </div>
               </div>
-            </Card>
+            </div>
 
-            <Card className="bg-white p-6 shadow-sm dark:bg-gray-800">
+            {/* Active Bookings */}
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t("activeBookings", { defaultValue: "Active Bookings" })}
+                  <p className="text-sm font-medium text-gray-500">
+                    Active Bookings
                   </p>
-                  <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-                    0
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {metrics.activeBookings}
                   </p>
                 </div>
-                <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/30">
-                  <svg
-                    className="h-6 w-6 text-blue-600 dark:text-blue-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
+                <div className="rounded-full bg-blue-100 p-3">
+                  <FaCalendarAlt className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
-            </Card>
+            </div>
 
-            <Card className="bg-white p-6 shadow-sm dark:bg-gray-800">
+            {/* Pending Quotes */}
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t("pendingRequests", { defaultValue: "Pending Requests" })}
+                  <p className="text-sm font-medium text-gray-500">
+                    Pending Quotes
                   </p>
-                  <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-                    0
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {metrics.pendingQuotes}
                   </p>
                 </div>
-                <div className="rounded-full bg-yellow-100 p-3 dark:bg-yellow-900/30">
-                  <svg
-                    className="h-6 w-6 text-yellow-600 dark:text-yellow-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                <div className="rounded-full bg-yellow-100 p-3">
+                  <FaFileAlt className="h-6 w-6 text-yellow-600" />
                 </div>
               </div>
-            </Card>
+            </div>
 
-            <Card className="bg-white p-6 shadow-sm dark:bg-gray-800">
+            {/* Average Rating */}
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t("totalEarnings", { defaultValue: "Total Earnings" })}
+                  <p className="text-sm font-medium text-gray-500">
+                    Average Rating
                   </p>
-                  <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-                    LKR 0
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {metrics.averageRating > 0
+                      ? `${metrics.averageRating}/5.0`
+                      : "N/A"}
                   </p>
                 </div>
-                <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/30">
-                  <svg
-                    className="h-6 w-6 text-purple-600 dark:text-purple-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                <div className="rounded-full bg-purple-100 p-3">
+                  <FaStar className="h-6 w-6 text-purple-600" />
                 </div>
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Quick Actions */}
           <div className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-              {t("quickActions", { defaultValue: "Quick Actions" })}
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              Quick Actions
             </h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="cursor-pointer bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800">
-                <div className="flex items-center gap-4">
-                  <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/30">
-                    <svg
-                      className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {t("addVehicle", { defaultValue: "Add New Vehicle" })}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t("listVehicle", {
-                        defaultValue: "List a new vehicle for rent",
-                      })}
-                    </p>
-                  </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* Add Vehicle - Primary Action */}
+              <Link
+                href="/owner/fleet/add"
+                className="flex items-center gap-4 rounded-lg border-2 border-dashed border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50"
+              >
+                <div className="rounded-full bg-gray-100 p-3">
+                  <FaPlus className="h-6 w-6 text-gray-600" />
                 </div>
-              </Card>
+                <div>
+                  <h3 className="font-medium text-gray-900">Add Vehicle</h3>
+                  <p className="text-sm text-gray-500">List a new vehicle</p>
+                </div>
+              </Link>
 
-              <Card className="cursor-pointer bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800">
-                <div className="flex items-center gap-4">
-                  <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/30">
-                    <svg
-                      className="h-6 w-6 text-blue-600 dark:text-blue-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {t("manageBookings", { defaultValue: "Manage Bookings" })}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t("viewBookings", {
-                        defaultValue: "View and manage rental bookings",
-                      })}
-                    </p>
-                  </div>
+              {/* Manage Fleet */}
+              <Link
+                href="/owner/fleet"
+                className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300 hover:bg-gray-50"
+              >
+                <div className="rounded-full bg-blue-100 p-3">
+                  <FaBus className="h-6 w-6 text-blue-600" />
                 </div>
-              </Card>
+                <div>
+                  <h3 className="font-medium text-gray-900">Manage Fleet</h3>
+                  <p className="text-sm text-gray-500">View all vehicles</p>
+                </div>
+              </Link>
 
-              <Card className="cursor-pointer bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800">
-                <div className="flex items-center gap-4">
-                  <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/30">
-                    <svg
-                      className="h-6 w-6 text-purple-600 dark:text-purple-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {t("viewAnalytics", { defaultValue: "View Analytics" })}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t("trackPerformance", {
-                        defaultValue: "Track your rental performance",
-                      })}
-                    </p>
-                  </div>
+              {/* View All Quotes */}
+              <Link
+                href="/owner/quotations"
+                className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300 hover:bg-gray-50"
+              >
+                <div className="rounded-full bg-yellow-100 p-3">
+                  <FaClipboardList className="h-6 w-6 text-yellow-600" />
                 </div>
-              </Card>
+                <div>
+                  <h3 className="font-medium text-gray-900">View All Quotes</h3>
+                  <p className="text-sm text-gray-500">Manage quotations</p>
+                </div>
+              </Link>
             </div>
           </div>
 
-          {/* Recent Activity Placeholder */}
-          <Card className="bg-white p-6 shadow-sm dark:bg-gray-800">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-              {t("recentActivity", { defaultValue: "Recent Activity" })}
-            </h2>
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <svg
-                className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-              <p className="text-gray-500 dark:text-gray-400">
-                {t("noActivity", {
-                  defaultValue: "No recent activity to display",
-                })}
-              </p>
-              <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
-                {t("startListing", {
-                  defaultValue: "Start by listing your first vehicle",
-                })}
-              </p>
+          {/* Main Content Grid */}
+          <div className="grid gap-8 lg:grid-cols-3">
+            {/* Quotation Requests - Takes 2 columns */}
+            <div className="lg:col-span-2">
+              <div className="rounded-lg border border-gray-200 bg-white">
+                <div className="flex items-center justify-between border-b border-gray-200 p-6">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Quotation Requests
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      Respond to customer inquiries
+                    </p>
+                  </div>
+                  <Link
+                    href="/owner/quotations"
+                    className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
+                  >
+                    View All
+                    <FaArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="border-b border-gray-200 px-6">
+                  <div className="flex gap-4">
+                    {[
+                      { id: "all", label: "All" },
+                      { id: "new", label: "New" },
+                      { id: "pending", label: "Pending Response" },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() =>
+                          setQuotationFilter(tab.id as typeof quotationFilter)
+                        }
+                        className={`border-b-2 py-3 text-sm font-medium transition-colors ${
+                          quotationFilter === tab.id
+                            ? "border-gray-900 text-gray-900"
+                            : "border-transparent text-gray-500 hover:text-gray-700"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Request List */}
+                <div className="p-6">
+                  {quotationRequests.length > 0 ? (
+                    <div className="space-y-4">
+                      {quotationRequests.map((request) => (
+                        <div
+                          key={request.id}
+                          className="rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50"
+                        >
+                          <div className="mb-3 flex items-start justify-between">
+                            <div>
+                              <h3 className="font-medium text-gray-900">
+                                {request.customer}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                {request.id}
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-white">
+                              New
+                            </span>
+                          </div>
+
+                          <div className="mb-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                            <div className="flex items-center gap-1.5">
+                              <FaMapMarkerAlt className="h-4 w-4 text-gray-400" />
+                              <span className="text-gray-600">
+                                {request.route}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <FaCalendarAlt className="h-4 w-4 text-gray-400" />
+                              <span className="text-gray-600">
+                                {request.date}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <FaUsers className="h-4 w-4 text-gray-400" />
+                              <span className="text-gray-600">
+                                {request.passengers} passengers
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <FaClock className="h-4 w-4 text-gray-400" />
+                              <span className="text-yellow-600">
+                                {request.expiresIn}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button className="w-full rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800">
+                            Send Quotation
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                        <FaFileAlt className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="mb-2 font-semibold text-gray-900">
+                        No Quotation Requests
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        New quotation requests from customers will appear here.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </Card>
+
+            {/* Right Sidebar */}
+            <div className="space-y-8">
+              {/* Upcoming Bookings */}
+              <div className="rounded-lg border border-gray-200 bg-white">
+                <div className="flex items-center justify-between border-b border-gray-200 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Upcoming Bookings
+                  </h2>
+                  <Link
+                    href="/owner/bookings"
+                    className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
+                  >
+                    View All
+                    <FaArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                <div className="p-6">
+                  {upcomingBookings.length > 0 ? (
+                    <div className="space-y-4">
+                      {upcomingBookings.map((booking) => (
+                        <div
+                          key={booking.id}
+                          className="border-b border-gray-100 pb-4 last:border-0 last:pb-0"
+                        >
+                          <div className="mb-1 flex items-center justify-between">
+                            <span className="font-medium text-gray-900">
+                              {booking.customer}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {booking.date}
+                            </span>
+                          </div>
+                          <p className="mb-1 text-sm text-gray-600">
+                            {booking.route}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {booking.vehicle}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center">
+                      <FaCalendarAlt className="mx-auto mb-3 h-8 w-8 text-gray-300" />
+                      <p className="text-sm text-gray-500">
+                        No upcoming bookings
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Fleet Overview */}
+              <div className="rounded-lg border border-gray-200 bg-white">
+                <div className="flex items-center justify-between border-b border-gray-200 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Fleet Overview
+                  </h2>
+                  <Link
+                    href="/owner/fleet"
+                    className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
+                  >
+                    Manage
+                    <FaArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                <div className="p-6">
+                  <div className="mb-6 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-green-500" />
+                        <span className="text-sm text-gray-600">Active</span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">
+                        {fleetStats.active} vehicles
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-gray-400" />
+                        <span className="text-sm text-gray-600">Inactive</span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">
+                        {fleetStats.inactive} vehicles
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                        <span className="text-sm text-gray-600">
+                          Pending Review
+                        </span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">
+                        {fleetStats.pendingReview} vehicles
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Fleet Utilization */}
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        Fleet Utilization
+                      </span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {fleetStats.utilization}%
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="h-full rounded-full bg-green-500 transition-all"
+                        style={{ width: `${fleetStats.utilization}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </MainLayout>

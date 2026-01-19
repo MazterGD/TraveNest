@@ -11,6 +11,7 @@ import type {
   Quotation,
   Review,
   PaginatedResponse,
+  OwnerRegistrationInput,
 } from "@/types";
 import type {
   LoginInput,
@@ -633,6 +634,54 @@ export const adminService = {
       resolution,
       refundAmount,
     }),
+};
+
+// ============================================
+// Owner Registration Service
+// ============================================
+export const ownerRegistrationService = {
+  /**
+   * Register a new bus owner with vehicles
+   * @throws {ApiError} On validation error or email already exists
+   */
+  register: (data: OwnerRegistrationInput) =>
+    api.post<AuthResponse>("/owner/register", data, { skipAuth: true }),
+
+  /**
+   * Get owner profile with vehicles and documents
+   */
+  getProfile: () =>
+    api.get<{
+      profile: User & {
+        businessProfile?: {
+          businessName: string;
+          businessType: string;
+          registrationNumber?: string;
+          taxId?: string;
+        };
+        documents?: Array<{
+          id: string;
+          type: string;
+          url: string;
+          status: string;
+        }>;
+        vehicles?: Array<
+          Vehicle & {
+            documents?: Array<{
+              id: string;
+              type: string;
+              url: string;
+              status: string;
+            }>;
+            photos?: Array<{
+              id: string;
+              url: string;
+              isPrimary: boolean;
+            }>;
+          }
+        >;
+      };
+    }>("/owner/profile"),
 };
 
 // Re-export ApiError for convenience

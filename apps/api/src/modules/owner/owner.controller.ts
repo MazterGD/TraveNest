@@ -1,0 +1,67 @@
+import type { Request, Response } from "express";
+import * as ownerService from "./owner.service.js";
+import { config } from "../../config/index.js";
+
+/**
+ * Register a new bus owner with vehicles
+ * POST /api/v1/owner/register
+ */
+export const register = async (req: Request, res: Response) => {
+  const result = await ownerService.registerOwner(req.body);
+
+  // Set refresh token as HTTP-only cookie
+  res.cookie("refreshToken", result.refreshToken, {
+    httpOnly: true,
+    secure: config.env === "production",
+    sameSite: "strict",
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  });
+
+  res.status(201).json({
+    success: true,
+    message:
+      "Owner registration successful. Your account is pending verification.",
+    data: {
+      user: result.user,
+      accessToken: result.accessToken,
+    },
+  });
+};
+
+/**
+ * Get owner profile with vehicles and documents
+ * GET /api/v1/owner/profile
+ */
+export const getProfile = async (req: Request, res: Response) => {
+  const ownerId = req.user!.id;
+  const profile = await ownerService.getOwnerProfile(ownerId);
+
+  res.json({
+    success: true,
+    data: { profile },
+  });
+};
+
+/**
+ * Update owner verification status (admin only)
+ * PATCH /api/v1/owner/:id/verify
+ */
+export const verifyOwner = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { isVerified } = req.body;
+  const adminId = req.user!.id;
+
+  const owner = await ownerService.updateOwnerVerification(
+    String(id),
+    isVerified,
+    adminId,
+  );
+
+  res.json({
+    success: true,
+    message: isVerified
+      ? "Owner verified successfully"
+      : "Owner verification revoked",
+    data: { owner },
+  });
+};

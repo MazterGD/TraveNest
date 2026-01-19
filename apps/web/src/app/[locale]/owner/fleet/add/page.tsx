@@ -1,0 +1,589 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { LoadingSpinner } from "@/components/ui";
+import { useAuthStore } from "@/store";
+import { useOwnerGuard } from "@/hooks";
+import { FaArrowLeft, FaUpload, FaCheckCircle, FaTimes } from "react-icons/fa";
+
+type FormSection = "basic" | "pricing" | "photos" | "amenities";
+
+interface FormData {
+  registration: string;
+  type: string;
+  make: string;
+  model: string;
+  year: string;
+  capacity: string;
+  color: string;
+  acType: string;
+  condition: string;
+  description: string;
+  pricePerKm: string;
+  pricePerDay: string;
+  gpsEnabled: boolean;
+}
+
+export default function AddVehiclePage() {
+  const { user } = useAuthStore();
+  const [activeSection, setActiveSection] = useState<FormSection>("basic");
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [primaryPhoto, setPrimaryPhoto] = useState<File | null>(null);
+  const [additionalPhotos, setAdditionalPhotos] = useState<File[]>([]);
+
+  const [formData, setFormData] = useState<FormData>({
+    registration: "",
+    type: "",
+    make: "",
+    model: "",
+    year: "",
+    capacity: "",
+    color: "",
+    acType: "",
+    condition: "",
+    description: "",
+    pricePerKm: "",
+    pricePerDay: "",
+    gpsEnabled: false,
+  });
+
+  // Protect this route - only vehicle owners can access
+  const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+  ) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    setFormData({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
+
+  const amenitiesList = [
+    { id: "wifi", label: "WiFi" },
+    { id: "ac", label: "Air Conditioning" },
+    { id: "music", label: "Music System" },
+    { id: "usb", label: "USB Charging" },
+    { id: "tv", label: "TV/Entertainment" },
+    { id: "reclining", label: "Reclining Seats" },
+    { id: "reading", label: "Reading Lights" },
+    { id: "gps", label: "GPS Tracking" },
+  ];
+
+  const toggleAmenity = (id: string) => {
+    if (selectedAmenities.includes(id)) {
+      setSelectedAmenities(selectedAmenities.filter((a) => a !== id));
+    } else {
+      setSelectedAmenities([...selectedAmenities, id]);
+    }
+  };
+
+  const sections = [
+    { id: "basic", label: "Basic Information" },
+    { id: "pricing", label: "Pricing" },
+    { id: "photos", label: "Photos" },
+    { id: "amenities", label: "Amenities & Features" },
+  ] as const;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // TODO: Implement form submission
+    console.log({
+      formData,
+      selectedAmenities,
+      primaryPhoto,
+      additionalPhotos,
+    });
+  };
+
+  // Show loading while checking auth state
+  if (guardLoading || !isAuthorized || !user) {
+    return (
+      <MainLayout>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  return (
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="border-b border-gray-200 bg-white">
+          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+            <Link
+              href="/owner/fleet"
+              className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+            >
+              <FaArrowLeft className="h-4 w-4" />
+              Back to Fleet
+            </Link>
+            <h1 className="text-xl font-semibold text-gray-900">
+              Add New Vehicle
+            </h1>
+            <p className="mt-0.5 text-sm text-gray-500">
+              Fill in the details to list your bus
+            </p>
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-5xl px-6 py-8 lg:px-8">
+          {/* Section Navigation */}
+          <div className="mb-8 rounded-lg border border-gray-200 bg-white">
+            <div className="border-b border-gray-200 px-6">
+              <nav className="flex gap-8">
+                {sections.map((section) => (
+                  <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`border-b-2 py-4 text-sm font-medium transition-colors ${
+                      activeSection === section.id
+                        ? "border-gray-900 text-gray-900"
+                        : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {section.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            <div className="p-8">
+              <form onSubmit={handleSubmit}>
+                {/* Basic Information */}
+                {activeSection === "basic" && (
+                  <div className="max-w-3xl space-y-6">
+                    <div>
+                      <h3 className="mb-1 font-semibold text-gray-900">
+                        Vehicle Details
+                      </h3>
+                      <p className="mb-6 text-sm text-gray-600">
+                        Enter the basic information about your vehicle
+                      </p>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Registration Number *
+                        </label>
+                        <input
+                          type="text"
+                          name="registration"
+                          required
+                          value={formData.registration}
+                          onChange={handleChange}
+                          placeholder="ABC-1234"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Vehicle Type *
+                        </label>
+                        <select
+                          name="type"
+                          required
+                          value={formData.type}
+                          onChange={handleChange}
+                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        >
+                          <option value="">Select type</option>
+                          <option value="luxury">Luxury Coach</option>
+                          <option value="semi-luxury">Semi-Luxury</option>
+                          <option value="standard">Standard Bus</option>
+                          <option value="mini">Mini Bus</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Make *
+                        </label>
+                        <input
+                          type="text"
+                          name="make"
+                          required
+                          value={formData.make}
+                          onChange={handleChange}
+                          placeholder="e.g., Ashok Leyland"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Model *
+                        </label>
+                        <input
+                          type="text"
+                          name="model"
+                          required
+                          value={formData.model}
+                          onChange={handleChange}
+                          placeholder="e.g., 2820"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Year *
+                        </label>
+                        <input
+                          type="number"
+                          name="year"
+                          required
+                          value={formData.year}
+                          onChange={handleChange}
+                          placeholder="2022"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Seating Capacity *
+                        </label>
+                        <input
+                          type="number"
+                          name="capacity"
+                          required
+                          value={formData.capacity}
+                          onChange={handleChange}
+                          placeholder="45"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Color *
+                        </label>
+                        <input
+                          type="text"
+                          name="color"
+                          required
+                          value={formData.color}
+                          onChange={handleChange}
+                          placeholder="White"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          AC Type *
+                        </label>
+                        <select
+                          name="acType"
+                          required
+                          value={formData.acType}
+                          onChange={handleChange}
+                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        >
+                          <option value="">Select AC type</option>
+                          <option value="full-ac">Full AC</option>
+                          <option value="ac">AC</option>
+                          <option value="non-ac">Non-AC</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Condition *
+                        </label>
+                        <select
+                          name="condition"
+                          required
+                          value={formData.condition}
+                          onChange={handleChange}
+                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        >
+                          <option value="">Select condition</option>
+                          <option value="excellent">Excellent</option>
+                          <option value="good">Good</option>
+                          <option value="fair">Fair</option>
+                        </select>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Description
+                        </label>
+                        <textarea
+                          name="description"
+                          value={formData.description}
+                          onChange={handleChange}
+                          rows={4}
+                          placeholder="Describe your vehicle, seating layout, and any special features..."
+                          className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        ></textarea>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pricing */}
+                {activeSection === "pricing" && (
+                  <div className="max-w-3xl space-y-6">
+                    <div>
+                      <h3 className="mb-1 font-semibold text-gray-900">
+                        Pricing Information
+                      </h3>
+                      <p className="mb-6 text-sm text-gray-600">
+                        Set your rental rates
+                      </p>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Price per Kilometer *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                            LKR
+                          </span>
+                          <input
+                            type="number"
+                            name="pricePerKm"
+                            required
+                            value={formData.pricePerKm}
+                            onChange={handleChange}
+                            placeholder="85"
+                            className="w-full rounded-lg border border-gray-300 py-2 pl-14 pr-3 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Price per Day *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                            LKR
+                          </span>
+                          <input
+                            type="number"
+                            name="pricePerDay"
+                            required
+                            value={formData.pricePerDay}
+                            onChange={handleChange}
+                            placeholder="25000"
+                            className="w-full rounded-lg border border-gray-300 py-2 pl-14 pr-3 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {formData.pricePerKm && formData.pricePerDay && (
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
+                        <div className="mb-3 text-sm font-medium text-gray-900">
+                          Sample Calculation
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between text-gray-600">
+                            <span>Distance: 150 km</span>
+                            <span>
+                              LKR{" "}
+                              {(
+                                parseFloat(formData.pricePerKm) * 150
+                              ).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-gray-600">
+                            <span>1 Day rental</span>
+                            <span>
+                              LKR{" "}
+                              {parseFloat(
+                                formData.pricePerDay,
+                              ).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-t border-gray-300 pt-2 font-medium text-gray-900">
+                            <span>Estimated Total</span>
+                            <span>
+                              LKR{" "}
+                              {(
+                                parseFloat(formData.pricePerKm) * 150 +
+                                parseFloat(formData.pricePerDay)
+                              ).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Photos */}
+                {activeSection === "photos" && (
+                  <div className="max-w-3xl space-y-6">
+                    <div>
+                      <h3 className="mb-1 font-semibold text-gray-900">
+                        Vehicle Photos
+                      </h3>
+                      <p className="mb-6 text-sm text-gray-600">
+                        Upload clear photos of your vehicle
+                      </p>
+                    </div>
+
+                    <div className="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-gray-400">
+                      <FaUpload className="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                      <div className="mb-1 font-medium text-gray-900">
+                        Upload Primary Photo
+                      </div>
+                      <p className="mb-3 text-sm text-gray-600">
+                        This will be the main photo in listings
+                      </p>
+                      <label className="inline-block cursor-pointer rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800">
+                        Choose File
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            setPrimaryPhoto(e.target.files?.[0] || null)
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                      <p className="mt-3 text-xs text-gray-500">
+                        JPG, PNG up to 5MB
+                      </p>
+                      {primaryPhoto && (
+                        <div className="mt-4 flex items-center justify-center gap-2 text-sm text-green-600">
+                          <FaCheckCircle className="h-4 w-4" />
+                          {primaryPhoto.name}
+                          <button
+                            type="button"
+                            onClick={() => setPrimaryPhoto(null)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <FaTimes className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="mb-3 text-sm font-medium text-gray-900">
+                        Additional Photos (Optional)
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        {[1, 2, 3, 4].map((i) => (
+                          <label
+                            key={i}
+                            className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-gray-400"
+                          >
+                            <div className="text-center">
+                              <FaUpload className="mx-auto mb-1 h-6 w-6 text-gray-400" />
+                              <span className="text-xs text-gray-500">
+                                Upload
+                              </span>
+                            </div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setAdditionalPhotos((prev) => [
+                                    ...prev,
+                                    file,
+                                  ]);
+                                }
+                              }}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Amenities */}
+                {activeSection === "amenities" && (
+                  <div className="max-w-3xl space-y-6">
+                    <div>
+                      <h3 className="mb-1 font-semibold text-gray-900">
+                        Amenities & Features
+                      </h3>
+                      <p className="mb-6 text-sm text-gray-600">
+                        Select available amenities
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                      {amenitiesList.map((amenity) => (
+                        <button
+                          key={amenity.id}
+                          type="button"
+                          onClick={() => toggleAmenity(amenity.id)}
+                          className={`rounded-lg border-2 p-4 text-sm font-medium transition-all ${
+                            selectedAmenities.includes(amenity.id)
+                              ? "border-primary bg-primary/5 text-primary"
+                              : "border-gray-300 text-gray-700 hover:border-gray-400"
+                          }`}
+                        >
+                          {amenity.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-4 transition-colors hover:border-gray-300">
+                      <input
+                        type="checkbox"
+                        name="gpsEnabled"
+                        checked={formData.gpsEnabled}
+                        onChange={handleChange}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                      />
+                      <div>
+                        <div className="mb-0.5 font-medium text-gray-900">
+                          GPS Tracking
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          Real-time tracking for safety
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="mt-8 flex max-w-3xl gap-3 border-t border-gray-200 pt-6">
+                  <button
+                    type="button"
+                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  >
+                    Save as Draft
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+                  >
+                    Publish Vehicle
+                    <FaCheckCircle className="h-4 w-4" />
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
+  );
+}

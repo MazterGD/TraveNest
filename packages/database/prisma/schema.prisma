@@ -76,6 +76,22 @@ enum TransmissionType {
   MANUAL
 }
 
+enum DocumentType {
+  NIC
+  DRIVING_LICENSE
+  INSURANCE
+  REGISTRATION_CERTIFICATE
+  PROFILE_PHOTO
+  VEHICLE_PHOTO
+  BUSINESS_REGISTRATION
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
 // Models
 model User {
   id            String     @id @default(cuid())
@@ -84,22 +100,70 @@ model User {
   firstName     String
   lastName      String
   phone         String?
+  nicNumber     String?    // NIC number (moved from vehicle registration)
   avatar        String?
   role          UserRole   @default(CUSTOMER)
   status        UserStatus @default(ACTIVE)
   isVerified    Boolean    @default(false)
+  verifiedAt    DateTime?  // When the owner was verified
+  verifiedBy    String?    // Admin user ID who verified
+  rejectedAt    DateTime?  // When registration was rejected (if applicable)
+  rejectionReason String?  // Reason for rejection
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
   // Relations
   vehicles      Vehicle[]
+  documents     OwnerDocument[]
   bookings      Booking[]       @relation("CustomerBookings")
   quotationRequests Quotation[] @relation("CustomerQuotations")
   reviews       Review[]
   notifications Notification[]
   payments      Payment[]
+  businessProfile BusinessProfile?
 
   @@map("users")
+}
+
+// Owner document uploads (NIC, Profile Photo, etc.)
+model OwnerDocument {
+  id            String         @id @default(cuid())
+  ownerId       String
+  type          DocumentType
+  url           String         // S3 URL or file path
+  fileName      String
+  fileSize      Int            // in bytes
+  mimeType      String
+  status        DocumentStatus @default(PENDING)
+  rejectionReason String?
+  verifiedAt    DateTime?
+  verifiedBy    String?        // Admin user ID who verified
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([type])
+  @@map("owner_documents")
+}
+
+// Business profile for business owners (optional)
+model BusinessProfile {
+  id                  String   @id @default(cuid())
+  ownerId             String   @unique
+  businessName        String
+  businessType        String   // sole-proprietorship, partnership, private-limited, other
+  registrationNumber  String?
+  taxId               String?  // TIN
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  owner               User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@map("business_profiles")
 }
 
 model Vehicle {
@@ -117,6 +181,7 @@ model Vehicle {
   doors           Int?
   fuelType        FuelType
   transmission    TransmissionType
+  acType          String?          // full-ac, ac, non-ac
   mileage         Int?
   features        String[]
   images          String[]
@@ -132,6 +197,8 @@ model Vehicle {
 
   // Relations
   owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documents       VehicleDocument[]
+  photos          VehiclePhoto[]
   bookings        Booking[]
   quotations      Quotation[]
   reviews         Review[]
@@ -141,6 +208,50 @@ model Vehicle {
   @@index([type])
   @@index([location])
   @@map("vehicles")
+}
+
+// Vehicle documents (License, Insurance, Registration Certificate)
+model VehicleDocument {
+  id              String         @id @default(cuid())
+  vehicleId       String
+  type            DocumentType   // DRIVING_LICENSE, INSURANCE, REGISTRATION_CERTIFICATE
+  url             String         // S3 URL or file path
+  fileName        String
+  fileSize        Int            // in bytes
+  mimeType        String
+  status          DocumentStatus @default(PENDING)
+  rejectionReason String?
+  expiryDate      DateTime?      // For insurance and license
+  verifiedAt      DateTime?
+  verifiedBy      String?        // Admin user ID who verified
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  vehicle         Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([type])
+  @@map("vehicle_documents")
+}
+
+// Vehicle photos (multiple photos per vehicle)
+model VehiclePhoto {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  url         String   // S3 URL or file path
+  fileName    String
+  fileSize    Int      // in bytes
+  mimeType    String
+  isPrimary   Boolean  @default(false) // Primary display photo
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_photos")
 }
 
 model VehicleAvailability {

@@ -3,6 +3,8 @@
     "name": "TravelNest",
     "tagline": "Your Journey, Our Commitment"
   },
+  "ownerDashboard": "Owner Dashboard",
+  "welcomeBack": "Welcome back",
   "navigation": {
     "home": "Home",
     "search": "Search Buses",

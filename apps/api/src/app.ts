@@ -22,6 +22,7 @@ import quotationRoutes from "./modules/quotation/quotation.routes.js";
 import reviewRoutes from "./modules/review/review.routes.js";
 import paymentRoutes from "./modules/payment/payment.routes.js";
 import notificationRoutes from "./modules/notification/notification.routes.js";
+import ownerRoutes from "./modules/owner/owner.routes.js";
 
 const app: Express = express();
 
@@ -80,6 +81,7 @@ app.use(`${apiBase}/quotations`, quotationRoutes);
 app.use(`${apiBase}/reviews`, reviewRoutes);
 app.use(`${apiBase}/payments`, paymentRoutes);
 app.use(`${apiBase}/notifications`, notificationRoutes);
+app.use(`${apiBase}/owner`, ownerRoutes);
 
 // API documentation endpoint
 app.get(`${apiBase}`, (_req: Request, res: Response) => {
@@ -96,6 +98,7 @@ app.get(`${apiBase}`, (_req: Request, res: Response) => {
       reviews: `${apiBase}/reviews`,
       payments: `${apiBase}/payments`,
       notifications: `${apiBase}/notifications`,
+      owner: `${apiBase}/owner`,
     },
   });
 });

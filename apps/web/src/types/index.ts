@@ -215,3 +215,75 @@ export interface PaginatedResponse<T> {
 
 // Language Type
 export type Locale = "en" | "si" | "ta";
+
+// ============================================
+// Owner Registration Types
+// ============================================
+export interface OwnerRegistrationVehicleDocument {
+  type: "DRIVING_LICENSE" | "INSURANCE" | "REGISTRATION_CERTIFICATE";
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  url?: string;
+}
+
+export interface OwnerRegistrationVehiclePhoto {
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  isPrimary?: boolean;
+  url?: string;
+}
+
+export interface OwnerRegistrationVehicle {
+  registrationNumber: string;
+  vehicleType: "luxury" | "semi-luxury" | "standard" | "mini";
+  make: string;
+  model: string;
+  year: number;
+  seatingCapacity: number;
+  acType: "full-ac" | "ac" | "non-ac";
+  photos?: OwnerRegistrationVehiclePhoto[];
+  documents?: OwnerRegistrationVehicleDocument[];
+}
+
+export interface OwnerRegistrationDocument {
+  type: "NIC" | "PROFILE_PHOTO";
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  url?: string;
+}
+
+export interface OwnerRegistrationBusinessProfile {
+  businessName: string;
+  businessType:
+    | "sole-proprietorship"
+    | "partnership"
+    | "private-limited"
+    | "other";
+  registrationNumber?: string;
+  taxId?: string;
+}
+
+export interface OwnerRegistrationAddress {
+  address: string;
+  city: string;
+  district: string;
+  postalCode?: string;
+  baseLocation: string;
+}
+
+export interface OwnerRegistrationInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  nicNumber: string;
+  password: string;
+  confirmPassword: string;
+  address: OwnerRegistrationAddress;
+  businessProfile?: OwnerRegistrationBusinessProfile;
+  ownerDocuments?: OwnerRegistrationDocument[];
+  vehicles: OwnerRegistrationVehicle[];
+}

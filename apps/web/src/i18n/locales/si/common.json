@@ -3,6 +3,8 @@
     "name": "TravelNest",
     "tagline": "ඔබේ ගමන, අපගේ කැපවීම"
   },
+  "ownerDashboard": "හිමිකරු උපකරණ පුවරුව",
+  "welcomeBack": "නැවත සාදරයෙන් පිළිගනිමු",
   "navigation": {
     "home": "මුල් පිටුව",
     "search": "බස් සොයන්න",

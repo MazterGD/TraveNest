@@ -3,6 +3,8 @@
     "name": "TravelNest",
     "tagline": "உங்கள் பயணம், எங்கள் அர்ப்பணிப்பு"
   },
+  "ownerDashboard": "உரிமையாளர் டாஷ்போர்டு",
+  "welcomeBack": "மீண்டும் வரவேற்கிறோம்",
   "navigation": {
     "home": "முகப்பு",
     "search": "பேருந்துகளை தேடுங்கள்",
