@@ -40,8 +40,13 @@ export function Header() {
   const showAuthenticatedUI =
     isHydrated && !isLoading && isAuthenticated && user;
 
+  // Dynamic navigation based on auth state
+  const homeUrl = showAuthenticatedUI
+    ? getDashboardUrl(user, locale)
+    : `/${locale}`;
+
   const navigation = [
-    { name: t("home"), href: `/${locale}` },
+    { name: t("home"), href: homeUrl },
     { name: t("search"), href: `/${locale}/search` },
     { name: t("howItWorks"), href: `/${locale}/how-it-works` },
     { name: t("about"), href: `/${locale}/about` },
@@ -54,7 +59,7 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href={`/${locale}`} className="flex items-center space-x-2">
+            <Link href={homeUrl} className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-white font-bold text-lg">TN</span>
               </div>
@@ -83,7 +88,11 @@ export function Header() {
             {showAuthenticatedUI ? (
               <>
                 <Link
-                  href={getDashboardUrl(user, locale)}
+                  href={
+                    user.role === "VEHICLE_OWNER"
+                      ? `/${locale}/owner/profile`
+                      : getDashboardUrl(user, locale)
+                  }
                   className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
                 >
                   <FaUser className="h-4 w-4" />
@@ -152,12 +161,18 @@ export function Header() {
               {showAuthenticatedUI ? (
                 <>
                   <Link
-                    href={getDashboardUrl(user, locale)}
+                    href={
+                      user.role === "VEHICLE_OWNER"
+                        ? `/${locale}/owner/profile`
+                        : getDashboardUrl(user, locale)
+                    }
                     className="flex items-center gap-2 rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <FaUser className="h-4 w-4" />
-                    {user.firstName}&apos;s Dashboard
+                    {user.role === "VEHICLE_OWNER"
+                      ? "Profile"
+                      : `${user.firstName}'s Dashboard`}
                   </Link>
                   <button
                     onClick={handleLogout}

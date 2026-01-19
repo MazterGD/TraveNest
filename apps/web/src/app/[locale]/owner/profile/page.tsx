@@ -20,9 +20,14 @@ import {
   FaUser,
   FaArrowLeft,
   FaExclamationCircle,
+  FaTimes,
+  FaTrash,
+  FaCamera,
+  FaSpinner,
 } from "react-icons/fa";
 
 type ProfileTab = "business" | "documents" | "personal" | "security";
+type VerificationStatus = "pending" | "verified" | "rejected" | "incomplete";
 
 interface Document {
   key: string;
@@ -31,44 +36,66 @@ interface Document {
   status: "verified" | "pending" | "rejected" | "missing";
   uploadDate: string | null;
   expiryDate: string | null;
+  rejectionReason?: string;
+  required: boolean;
+}
+
+interface VerificationData {
+  status: VerificationStatus;
+  progress: number;
+  adminNotes?: string;
+  requiredDocuments: string[];
+  submittedDocuments: string[];
 }
 
 export default function OwnerProfilePage() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<ProfileTab>("business");
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
 
   // Protect this route - only vehicle owners can access
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
-  // Mock verification status - replace with API data
-  const verificationStatus: "pending" | "verified" | "rejected" =
-    user?.isVerified ? "verified" : "pending";
+  // Mock verification data - replace with API data
+  const verification: VerificationData = {
+    status: user?.isVerified ? "verified" : "incomplete",
+    progress: 60,
+    adminNotes:
+      "Please resubmit your business license with a clearer image. The current image is too blurry to verify.",
+    requiredDocuments: [
+      "Business License",
+      "Insurance Certificate",
+      "Operating Permit",
+      "Tax Documents",
+    ],
+    submittedDocuments: ["Business License", "Insurance Certificate"],
+  };
 
   // Mock documents - replace with API data
   const documents: Document[] = [
     {
       key: "license",
       label: "Business License",
-      name: null,
-      status: "missing",
-      uploadDate: null,
-      expiryDate: null,
+      name: "business-license.pdf",
+      status: "rejected",
+      uploadDate: "2026-01-15",
+      expiryDate: "2027-01-15",
+      rejectionReason: "Image quality too low. Please upload a clearer copy.",
+      required: true,
     },
     {
       key: "insurance",
       label: "Insurance Certificate",
-      name: null,
-      status: "missing",
-      uploadDate: null,
-      expiryDate: null,
-    },
-    {
-      key: "registration",
-      label: "Vehicle Registration",
-      name: null,
-      status: "missing",
-      uploadDate: null,
-      expiryDate: null,
+      name: "insurance-cert.pdf",
+      status: "verified",
+      uploadDate: "2026-01-14",
+      expiryDate: "2026-12-31",
+      required: true,
     },
     {
       key: "permit",
@@ -77,22 +104,82 @@ export default function OwnerProfilePage() {
       status: "missing",
       uploadDate: null,
       expiryDate: null,
+      required: true,
+    },
+    {
+      key: "registration",
+      label: "Vehicle Registration",
+      name: "vehicle-reg.pdf",
+      status: "pending",
+      uploadDate: "2026-01-16",
+      expiryDate: null,
+      required: false,
+    },
+    {
+      key: "tax",
+      label: "Tax Documents",
+      name: null,
+      status: "missing",
+      uploadDate: null,
+      expiryDate: null,
+      required: true,
     },
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "verified":
-        return "text-green-700 bg-green-100";
+        return "text-green-700 bg-green-100 border-green-200";
       case "pending":
-        return "text-yellow-700 bg-yellow-100";
+        return "text-yellow-700 bg-yellow-100 border-yellow-200";
       case "rejected":
-        return "text-red-700 bg-red-100";
+        return "text-red-700 bg-red-100 border-red-200";
       case "missing":
-        return "text-gray-600 bg-gray-100";
+        return "text-gray-600 bg-gray-100 border-gray-200";
+      case "incomplete":
+        return "text-orange-700 bg-orange-100 border-orange-200";
       default:
-        return "text-gray-600 bg-gray-100";
+        return "text-gray-600 bg-gray-100 border-gray-200";
     }
+  };
+
+  const handleFileUpload = (file: File) => {
+    setUploading(true);
+    // TODO: API call to upload file
+    setTimeout(() => {
+      setUploading(false);
+      setShowUploadModal(false);
+      setSelectedDocument(null);
+    }, 2000);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const openUploadModal = (docKey: string) => {
+    setSelectedDocument(docKey);
+    setShowUploadModal(true);
+  };
+
+  const handleResubmit = () => {
+    // TODO: API call to resubmit for verification
+    console.log("Resubmitting for verification");
   };
 
   // Show loading while checking auth state
@@ -126,54 +213,96 @@ export default function OwnerProfilePage() {
         </header>
 
         <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-          {/* Verification Status Banner */}
-          {verificationStatus === "verified" && (
-            <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
-                  <FaCheckCircle className="h-5 w-5 text-green-600" />
+          {/* Verification Status Card */}
+          <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
+            <div className="mb-4 flex items-start justify-between">
+              <div className="flex-1">
+                <div className="mb-2 flex items-center gap-3">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Verification Status
+                  </h2>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-sm font-medium capitalize ${getStatusColor(
+                      verification.status,
+                    )}`}
+                  >
+                    {verification.status}
+                  </span>
                 </div>
-                <div className="flex-1">
-                  <div className="mb-2 flex items-center gap-3">
-                    <h2 className="font-semibold text-gray-900">
-                      Verification Complete
-                    </h2>
-                    <span className="rounded-full bg-green-600 px-2.5 py-0.5 text-xs font-medium text-white">
-                      Verified
-                    </span>
-                  </div>
-                  <p className="text-sm leading-relaxed text-gray-600">
-                    Your business is fully verified. You can now receive
-                    quotation requests and manage bookings.
-                  </p>
-                </div>
+                <p className="text-sm text-gray-600">
+                  Complete all requirements to start receiving bookings
+                </p>
               </div>
+              {verification.status === "rejected" && (
+                <button
+                  onClick={handleResubmit}
+                  className="rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
+                >
+                  Resubmit for Verification
+                </button>
+              )}
             </div>
-          )}
 
-          {verificationStatus === "pending" && (
-            <div className="mb-8 rounded-lg border border-yellow-200 bg-yellow-50 p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-yellow-100">
-                  <FaExclamationCircle className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="mb-2 flex items-center gap-3">
-                    <h2 className="font-semibold text-gray-900">
-                      Verification Pending
-                    </h2>
-                    <span className="rounded-full bg-yellow-600 px-2.5 py-0.5 text-xs font-medium text-white">
-                      Pending
-                    </span>
-                  </div>
-                  <p className="text-sm leading-relaxed text-gray-600">
-                    Your account is under review. This typically takes 2-3
-                    business days. You&apos;ll be notified once approved.
-                  </p>
-                </div>
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="font-medium text-gray-700">
+                  Completion Progress
+                </span>
+                <span className="text-gray-600">{verification.progress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                <div
+                  className="h-full bg-[#20B0E9] transition-all duration-300"
+                  style={{ width: `${verification.progress}%` }}
+                />
               </div>
             </div>
-          )}
+
+            {/* Required Documents Checklist */}
+            <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-gray-900">
+                Required Documents
+              </h3>
+              <div className="space-y-2">
+                {verification.requiredDocuments.map((doc) => {
+                  const isSubmitted =
+                    verification.submittedDocuments.includes(doc);
+                  return (
+                    <div key={doc} className="flex items-center gap-2 text-sm">
+                      {isSubmitted ? (
+                        <FaCheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
+                      )}
+                      <span
+                        className={
+                          isSubmitted ? "text-gray-900" : "text-gray-600"
+                        }
+                      >
+                        {doc}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Admin Notes */}
+            {verification.adminNotes && verification.status === "rejected" && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <FaExclamationCircle className="h-4 w-4 text-red-600" />
+                  <h3 className="text-sm font-semibold text-red-900">
+                    Admin Notes
+                  </h3>
+                </div>
+                <p className="text-sm text-red-700">
+                  {verification.adminNotes}
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Tab Navigation */}
           <div className="mb-8 rounded-lg border border-gray-200 bg-white">
@@ -194,7 +323,7 @@ export default function OwnerProfilePage() {
                     onClick={() => setActiveTab(tab.id as ProfileTab)}
                     className={`flex items-center gap-2 border-b-2 py-4 text-sm font-medium transition-colors ${
                       activeTab === tab.id
-                        ? "border-gray-900 text-gray-900"
+                        ? "border-[#20B0E9] text-[#20B0E9]"
                         : "border-transparent text-gray-500 hover:text-gray-700"
                     }`}
                   >
