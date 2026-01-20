@@ -2,7 +2,10 @@
 export { PageHeader } from "./PageHeader";
 export { Button } from "./Button";
 export { Input } from "./Input";
+export { Select } from "./Select";
 export { TextArea } from "./TextArea";
+export { FileUpload } from "./FileUpload";
+export { ImageUpload } from "./ImageUpload";
 export { LoadingSpinner } from "./LoadingSpinner";
 export {
   Card,
@@ -14,7 +17,6 @@ export {
 } from "./Card";
 export { Accordion, AccordionItem } from "./Accordion";
 export { Modal } from "./Modal";
-export { Select, type SelectOption } from "./Select";
 export { DatePicker, TimePicker, DateTimePicker } from "./DatePicker";
 export { Badge, StatusBadge } from "./Badge";
 export { Avatar, AvatarGroup } from "./Avatar";
@@ -81,10 +83,3 @@ export { InfoItem, InfoItemList } from "./InfoItem";
 
 // Quick Action Card - for dashboard quick actions
 export { QuickActionCard, QuickActionGrid } from "./QuickActionCard";
-
-// File Upload - for document uploads
-export {
-  FileUpload,
-  DocumentUploadGroup,
-  type UploadedFile,
-} from "./FileUpload";

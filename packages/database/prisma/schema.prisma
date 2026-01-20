@@ -102,6 +102,14 @@ model User {
   phone         String?
   nicNumber     String?    // NIC number (moved from vehicle registration)
   avatar        String?
+  
+  // Address fields
+  address       String?
+  city          String?
+  district      String?
+  postalCode    String?
+  baseLocation  String?
+  
   role          UserRole   @default(CUSTOMER)
   status        UserStatus @default(ACTIVE)
   isVerified    Boolean    @default(false)
@@ -109,6 +117,13 @@ model User {
   verifiedBy    String?    // Admin user ID who verified
   rejectedAt    DateTime?  // When registration was rejected (if applicable)
   rejectionReason String?  // Reason for rejection
+  
+  // Security fields
+  tokenVersion  Int        @default(0)  // Increment on password change to invalidate old tokens
+  failedLoginAttempts Int  @default(0)  // Track failed login attempts
+  lockedUntil   DateTime?                 // Account locked until this time
+  lastLoginAt   DateTime?                 // Track last successful login
+  
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -121,8 +136,26 @@ model User {
   notifications Notification[]
   payments      Payment[]
   businessProfile BusinessProfile?
+  passwordResets PasswordResetToken[]
 
   @@map("users")
+}
+
+// Password reset tokens (single-use, time-limited)
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique  // Hashed token
+  expiresAt DateTime             // Token expiration (typically 1 hour)
+  usedAt    DateTime?            // When the token was used (null if not used)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("password_reset_tokens")
 }
 
 // Owner document uploads (NIC, Profile Photo, etc.)
@@ -182,11 +215,15 @@ model Vehicle {
   fuelType        FuelType
   transmission    TransmissionType
   acType          String?          // full-ac, ac, non-ac
+  condition       String?          // excellent, good, fair
   mileage         Int?
-  features        String[]
+  features        Json?            // JSON field for vehicle features
+  amenities       String[]         // Array of amenities (wifi, ac, gps, etc)
   images          String[]
   pricePerDay     Float
   pricePerHour    Float?
+  pricePerKm      Float?           // Price per kilometer
+  driverAllowance Float?           // Daily driver allowance
   location        String
   latitude        Float?
   longitude       Float?

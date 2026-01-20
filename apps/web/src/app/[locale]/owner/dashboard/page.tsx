@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -8,6 +8,12 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
+import {
+  vehicleService,
+  quotationService,
+  bookingService,
+  ApiError,
+} from "@/lib/api";
 import {
   FaDollarSign,
   FaCalendarAlt,
@@ -22,6 +28,37 @@ import {
   FaClock,
 } from "react-icons/fa";
 
+interface DashboardMetrics {
+  totalRevenue: string;
+  activeBookings: number;
+  pendingQuotes: number;
+  averageRating: number;
+}
+
+interface FleetStats {
+  active: number;
+  inactive: number;
+  pendingReview: number;
+  utilization: number;
+}
+
+interface QuotationRequest {
+  id: string;
+  customer: string;
+  route: string;
+  date: string;
+  passengers: number;
+  expiresIn: string;
+}
+
+interface UpcomingBooking {
+  id: string;
+  customer: string;
+  route: string;
+  date: string;
+  vehicle: string;
+}
+
 export default function OwnerDashboardPage() {
   const t = useTranslations("common");
   const params = useParams();
@@ -31,40 +68,105 @@ export default function OwnerDashboardPage() {
     "all" | "new" | "pending"
   >("all");
 
-  // Protect this route - only vehicle owners can access
-  const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
-
-  // Sample data - will be replaced with real API data
-  const metrics = {
+  // State for API data
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalRevenue: "LKR 0",
     activeBookings: 0,
     pendingQuotes: 0,
     averageRating: 0,
-  };
-
-  const quotationRequests: Array<{
-    id: string;
-    customer: string;
-    route: string;
-    date: string;
-    passengers: number;
-    expiresIn: string;
-  }> = [];
-
-  const upcomingBookings: Array<{
-    id: string;
-    customer: string;
-    route: string;
-    date: string;
-    vehicle: string;
-  }> = [];
-
-  const fleetStats = {
+  });
+  const [fleetStats, setFleetStats] = useState<FleetStats>({
     active: 0,
     inactive: 0,
     pendingReview: 0,
     utilization: 0,
-  };
+  });
+  const [quotationRequests, setQuotationRequests] = useState<
+    QuotationRequest[]
+  >([]);
+  const [upcomingBookings, setUpcomingBookings] = useState<UpcomingBooking[]>(
+    [],
+  );
+
+  // Protect this route - only vehicle owners can access
+  const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user) return;
+
+      setIsLoadingData(true);
+
+      try {
+        // Fetch vehicles to calculate fleet stats
+        const vehicles = await vehicleService.getMyVehicles();
+        const vehicleList = vehicles as Array<{
+          isActive: boolean;
+          isAvailable: boolean;
+        }>;
+
+        const activeVehicles = vehicleList.filter(
+          (v) => v.isActive && v.isAvailable,
+        ).length;
+        const inactiveVehicles = vehicleList.filter(
+          (v) => v.isActive && !v.isAvailable,
+        ).length;
+        const pendingVehicles = vehicleList.filter((v) => !v.isActive).length;
+
+        setFleetStats({
+          active: activeVehicles,
+          inactive: inactiveVehicles,
+          pendingReview: pendingVehicles,
+          utilization:
+            vehicleList.length > 0
+              ? Math.round((activeVehicles / vehicleList.length) * 100)
+              : 0,
+        });
+
+        // For now, set metrics based on available data
+        // These would come from dedicated API endpoints in production
+        setMetrics({
+          totalRevenue: "LKR 0",
+          activeBookings: 0,
+          pendingQuotes: 0,
+          averageRating: 0,
+        });
+
+        // Try to fetch quotations and bookings (may not have endpoints yet)
+        try {
+          const quotes = await quotationService.getMyQuotes();
+          setQuotationRequests([]);
+          setMetrics((prev) => ({
+            ...prev,
+            pendingQuotes: (quotes as any[]).length,
+          }));
+        } catch {
+          // Quotation endpoints may not be implemented yet
+        }
+
+        try {
+          const bookings = await bookingService.getMyBookings();
+          setUpcomingBookings([]);
+          setMetrics((prev) => ({
+            ...prev,
+            activeBookings: (bookings as any[]).length,
+          }));
+        } catch {
+          // Booking endpoints may not be implemented yet
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    if (user && isAuthorized) {
+      fetchDashboardData();
+    }
+  }, [user, isAuthorized]);
 
   // Show loading while checking auth state
   if (guardLoading || !isAuthorized || !user) {

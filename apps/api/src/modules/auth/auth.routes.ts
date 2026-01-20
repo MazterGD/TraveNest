@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as authController from "./auth.controller.js";
 import { authenticate } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
+import { getCSRFToken } from "../../middleware/csrf.js";
 import {
   loginSchema,
   registerSchema,
@@ -12,6 +13,7 @@ import {
 const router = Router();
 
 // Public routes
+router.get("/csrf-token", getCSRFToken); // Get CSRF token
 router.post("/register", validate(registerSchema), authController.register);
 router.post("/login", validate(loginSchema), authController.login);
 router.post(

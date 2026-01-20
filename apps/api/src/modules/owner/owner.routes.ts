@@ -2,7 +2,12 @@ import { Router } from "express";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
-import { ownerRegistrationSchema } from "./owner.schemas.js";
+import {
+  ownerRegistrationSchema,
+  updatePersonalInfoSchema,
+  updateAddressSchema,
+  updateBusinessProfileSchema,
+} from "./owner.schemas.js";
 import * as ownerController from "./owner.controller.js";
 
 const router = Router();
@@ -40,6 +45,57 @@ router.patch(
   authenticate,
   authorize("admin"),
   asyncHandler(ownerController.verifyOwner),
+);
+
+/**
+ * @route   PATCH /api/v1/owner/profile/personal
+ * @desc    Update personal information
+ * @access  Private (Owner only)
+ */
+router.patch(
+  "/profile/personal",
+  authenticate,
+  authorize("owner"),
+  validate(updatePersonalInfoSchema),
+  asyncHandler(ownerController.updatePersonalInfo),
+);
+
+/**
+ * @route   PATCH /api/v1/owner/profile/address
+ * @desc    Update address information
+ * @access  Private (Owner only)
+ */
+router.patch(
+  "/profile/address",
+  authenticate,
+  authorize("owner"),
+  validate(updateAddressSchema),
+  asyncHandler(ownerController.updateAddress),
+);
+
+/**
+ * @route   PATCH /api/v1/owner/profile/business
+ * @desc    Update or create business profile
+ * @access  Private (Owner only)
+ */
+router.patch(
+  "/profile/business",
+  authenticate,
+  authorize("owner"),
+  validate(updateBusinessProfileSchema),
+  asyncHandler(ownerController.updateBusinessProfile),
+);
+
+/**
+ * @route   GET /api/v1/owner/dashboard/stats
+ * @desc    Get dashboard statistics
+ * @access  Private (Owner only)
+ */
+router.get(
+  "/dashboard/stats",
+  authenticate,
+  authorize("owner"),
+  asyncHandler(ownerController.getDashboardStats),
 );
 
 export default router;

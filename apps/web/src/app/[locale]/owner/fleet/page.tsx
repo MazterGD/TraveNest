@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -8,6 +8,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
+import { vehicleService, ApiError } from "@/lib/api";
 import {
   FaPlus,
   FaSearch,
@@ -33,16 +34,17 @@ type ViewMode = "grid" | "table";
 
 interface Vehicle {
   id: string;
-  image: string;
-  registration: string;
+  images: string[];
+  licensePlate: string;
   type: string;
-  make: string;
+  brand: string;
   model: string;
-  year: string;
-  capacity: number;
-  rating: number;
-  bookings: number;
-  status: "active" | "inactive" | "pending";
+  year: number;
+  seats: number;
+  rating?: number;
+  totalBookings?: number;
+  isActive: boolean;
+  isAvailable: boolean;
   acType: string;
 }
 
@@ -56,18 +58,59 @@ export default function FleetManagementPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
 
+  // State for API data
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
   // Protect this route - only vehicle owners can access
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
-  // Sample vehicles - will be replaced with API data
-  const vehicles: Vehicle[] = [];
+  // Fetch vehicles from API
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      if (!user) return;
+
+      setIsLoadingVehicles(true);
+      setError(null);
+
+      try {
+        const response = await vehicleService.getMyVehicles();
+        setVehicles(response as Vehicle[]);
+      } catch (err) {
+        console.error("Failed to fetch vehicles:", err);
+        if (err instanceof ApiError) {
+          setError(err.message);
+        } else {
+          setError("Failed to load vehicles");
+        }
+      } finally {
+        setIsLoadingVehicles(false);
+      }
+    };
+
+    if (user && isAuthorized) {
+      fetchVehicles();
+    }
+  }, [user, isAuthorized]);
+
+  // Helper to get vehicle status
+  const getVehicleStatus = (
+    vehicle: Vehicle,
+  ): "active" | "inactive" | "pending" => {
+    if (!vehicle.isActive) return "pending";
+    if (!vehicle.isAvailable) return "inactive";
+    return "active";
+  };
 
   const filteredVehicles = vehicles.filter((v) => {
-    const matchesTab = activeTab === "all" || v.status === activeTab;
+    const status = getVehicleStatus(v);
+    const matchesTab = activeTab === "all" || status === activeTab;
     const matchesSearch =
       searchQuery === "" ||
-      v.registration.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.type.toLowerCase().includes(searchQuery.toLowerCase());
+      v.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.brand.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
@@ -86,9 +129,9 @@ export default function FleetManagementPage() {
 
   const tabCounts = {
     all: vehicles.length,
-    active: vehicles.filter((v) => v.status === "active").length,
-    inactive: vehicles.filter((v) => v.status === "inactive").length,
-    pending: vehicles.filter((v) => v.status === "pending").length,
+    active: vehicles.filter((v) => getVehicleStatus(v) === "active").length,
+    inactive: vehicles.filter((v) => getVehicleStatus(v) === "inactive").length,
+    pending: vehicles.filter((v) => getVehicleStatus(v) === "pending").length,
   };
 
   // Show loading while checking auth state
@@ -260,168 +303,195 @@ export default function FleetManagementPage() {
           </div>
 
           {/* Vehicle Grid/Table */}
-          {filteredVehicles.length > 0 ? (
+          {isLoadingVehicles ? (
+            <div className="flex items-center justify-center py-12">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : error ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+              <p className="text-red-700">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-3 text-sm text-red-600 underline hover:text-red-800"
+              >
+                Try again
+              </button>
+            </div>
+          ) : filteredVehicles.length > 0 ? (
             viewMode === "grid" ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredVehicles.map((vehicle) => (
-                  <div
-                    key={vehicle.id}
-                    className="overflow-hidden rounded-lg border border-gray-200 bg-white transition-colors hover:border-gray-300"
-                  >
-                    <div className="relative h-48 bg-gray-100">
-                      <Image
-                        src={vehicle.image}
-                        alt={vehicle.registration}
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute left-3 top-3">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(
-                            vehicle.status,
-                          )}`}
-                        >
-                          {vehicle.status}
-                        </span>
-                      </div>
-                      {vehicle.status === "active" && vehicle.rating > 0 && (
-                        <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white px-2.5 py-1">
-                          <FaStar className="h-3.5 w-3.5 text-yellow-400" />
-                          <span className="text-sm font-medium text-gray-900">
-                            {vehicle.rating}
+                {filteredVehicles.map((vehicle) => {
+                  const status = getVehicleStatus(vehicle);
+                  return (
+                    <div
+                      key={vehicle.id}
+                      className="overflow-hidden rounded-lg border border-gray-200 bg-white transition-colors hover:border-gray-300"
+                    >
+                      <div className="relative h-48 bg-gray-100">
+                        {vehicle.images && vehicle.images.length > 0 ? (
+                          <Image
+                            src={vehicle.images[0]}
+                            alt={vehicle.licensePlate}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <FaBus className="h-16 w-16 text-gray-300" />
+                          </div>
+                        )}
+                        <div className="absolute left-3 top-3">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(
+                              status,
+                            )}`}
+                          >
+                            {status}
                           </span>
                         </div>
-                      )}
-                      {/* Quick Actions Menu */}
-                      <div className="absolute bottom-3 right-3">
-                        <div className="relative">
-                          <button
-                            onClick={() =>
-                              setShowActionsMenu(
-                                showActionsMenu === vehicle.id
-                                  ? null
-                                  : vehicle.id,
-                              )
-                            }
-                            className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md transition-colors hover:bg-gray-50"
-                          >
-                            <FaEllipsisV className="h-4 w-4 text-gray-600" />
-                          </button>
-                          {showActionsMenu === vehicle.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-10"
-                                onClick={() => setShowActionsMenu(null)}
-                              />
-                              <div className="absolute bottom-full right-0 z-20 mb-2 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
-                                <Link
-                                  href={`/${locale}/owner/fleet/${vehicle.id}/edit`}
-                                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                                >
-                                  <FaEdit className="h-4 w-4" />
-                                  Edit Vehicle
-                                </Link>
-                                <Link
-                                  href={`/${locale}/owner/fleet/${vehicle.id}`}
-                                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                                >
-                                  <FaEye className="h-4 w-4" />
-                                  View Details
-                                </Link>
-                                <Link
-                                  href={`/${locale}/owner/fleet/${vehicle.id}/availability`}
-                                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                                >
-                                  <FaCalendarAlt className="h-4 w-4" />
-                                  Set Availability
-                                </Link>
-                                <button className="flex w-full items-center gap-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50">
-                                  {vehicle.status === "active" ? (
-                                    <>
-                                      <FaToggleOff className="h-4 w-4" />
-                                      Deactivate
-                                    </>
-                                  ) : (
-                                    <>
-                                      <FaToggleOn className="h-4 w-4" />
-                                      Activate
-                                    </>
-                                  )}
-                                </button>
-                                <button className="flex w-full items-center gap-3 border-t border-gray-200 px-4 py-3 text-sm text-red-600 transition-colors hover:bg-red-50">
-                                  <FaTrash className="h-4 w-4" />
-                                  Delete Vehicle
-                                </button>
-                              </div>
-                            </>
+                        {status === "active" &&
+                          vehicle.rating &&
+                          vehicle.rating > 0 && (
+                            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white px-2.5 py-1">
+                              <FaStar className="h-3.5 w-3.5 text-yellow-400" />
+                              <span className="text-sm font-medium text-gray-900">
+                                {vehicle.rating}
+                              </span>
+                            </div>
                           )}
+                        {/* Quick Actions Menu */}
+                        <div className="absolute bottom-3 right-3">
+                          <div className="relative">
+                            <button
+                              onClick={() =>
+                                setShowActionsMenu(
+                                  showActionsMenu === vehicle.id
+                                    ? null
+                                    : vehicle.id,
+                                )
+                              }
+                              className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md transition-colors hover:bg-gray-50"
+                            >
+                              <FaEllipsisV className="h-4 w-4 text-gray-600" />
+                            </button>
+                            {showActionsMenu === vehicle.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-10"
+                                  onClick={() => setShowActionsMenu(null)}
+                                />
+                                <div className="absolute bottom-full right-0 z-20 mb-2 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                                  <Link
+                                    href={`/${locale}/owner/fleet/${vehicle.id}/edit`}
+                                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                                  >
+                                    <FaEdit className="h-4 w-4" />
+                                    Edit Vehicle
+                                  </Link>
+                                  <Link
+                                    href={`/${locale}/owner/fleet/${vehicle.id}`}
+                                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                                  >
+                                    <FaEye className="h-4 w-4" />
+                                    View Details
+                                  </Link>
+                                  <Link
+                                    href={`/${locale}/owner/fleet/${vehicle.id}/availability`}
+                                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                                  >
+                                    <FaCalendarAlt className="h-4 w-4" />
+                                    Set Availability
+                                  </Link>
+                                  <button className="flex w-full items-center gap-3 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50">
+                                    {status === "active" ? (
+                                      <>
+                                        <FaToggleOff className="h-4 w-4" />
+                                        Deactivate
+                                      </>
+                                    ) : (
+                                      <>
+                                        <FaToggleOn className="h-4 w-4" />
+                                        Activate
+                                      </>
+                                    )}
+                                  </button>
+                                  <button className="flex w-full items-center gap-3 border-t border-gray-200 px-4 py-3 text-sm text-red-600 transition-colors hover:bg-red-50">
+                                    <FaTrash className="h-4 w-4" />
+                                    Delete Vehicle
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4">
+                        <h3 className="mb-1 text-lg font-semibold text-gray-900">
+                          {vehicle.licensePlate}
+                        </h3>
+                        <p className="mb-3 text-sm text-gray-600">
+                          {vehicle.brand} {vehicle.model} • {vehicle.year}
+                        </p>
+
+                        {status !== "pending" && (
+                          <div className="mb-4 grid grid-cols-3 gap-3 rounded-lg bg-gray-50 p-3">
+                            <div>
+                              <div className="mb-0.5 text-xs text-gray-500">
+                                Capacity
+                              </div>
+                              <div className="font-medium text-gray-900">
+                                {vehicle.seats}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="mb-0.5 text-xs text-gray-500">
+                                Bookings
+                              </div>
+                              <div className="font-medium text-gray-900">
+                                {vehicle.totalBookings || 0}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="mb-0.5 text-xs text-gray-500">
+                                Rating
+                              </div>
+                              <div className="font-medium text-gray-900">
+                                {vehicle.rating
+                                  ? `${vehicle.rating}/5.0`
+                                  : "N/A"}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {status === "pending" && (
+                          <div className="mb-4 rounded-lg border border-yellow-300 bg-yellow-50 p-3">
+                            <p className="text-xs font-medium text-yellow-700">
+                              Awaiting verification approval
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/${locale}/owner/fleet/${vehicle.id}/edit`}
+                            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                          >
+                            <FaEdit className="h-4 w-4" />
+                            Edit
+                          </Link>
+                          <Link
+                            href={`/${locale}/owner/fleet/${vehicle.id}`}
+                            className="flex-1 rounded-lg bg-[#20B0E9] px-3 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
+                          >
+                            View Details
+                          </Link>
                         </div>
                       </div>
                     </div>
-
-                    <div className="p-4">
-                      <h3 className="mb-1 text-lg font-semibold text-gray-900">
-                        {vehicle.registration}
-                      </h3>
-                      <p className="mb-3 text-sm text-gray-600">
-                        {vehicle.make} {vehicle.model} • {vehicle.year}
-                      </p>
-
-                      {vehicle.status !== "pending" && (
-                        <div className="mb-4 grid grid-cols-3 gap-3 rounded-lg bg-gray-50 p-3">
-                          <div>
-                            <div className="mb-0.5 text-xs text-gray-500">
-                              Capacity
-                            </div>
-                            <div className="font-medium text-gray-900">
-                              {vehicle.capacity}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="mb-0.5 text-xs text-gray-500">
-                              Bookings
-                            </div>
-                            <div className="font-medium text-gray-900">
-                              {vehicle.bookings}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="mb-0.5 text-xs text-gray-500">
-                              Rating
-                            </div>
-                            <div className="font-medium text-gray-900">
-                              {vehicle.rating}/5.0
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {vehicle.status === "pending" && (
-                        <div className="mb-4 rounded-lg border border-yellow-300 bg-yellow-50 p-3">
-                          <p className="text-xs font-medium text-yellow-700">
-                            Awaiting verification approval
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/${locale}/owner/fleet/${vehicle.id}/edit`}
-                          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                        >
-                          <FaEdit className="h-4 w-4" />
-                          Edit
-                        </Link>
-                        <Link
-                          href={`/${locale}/owner/fleet/${vehicle.id}`}
-                          className="flex-1 rounded-lg bg-[#20B0E9] px-3 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
-                        >
-                          View Details
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : viewMode === "table" ? (
               <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -450,97 +520,107 @@ export default function FleetManagementPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {filteredVehicles.map((vehicle) => (
-                        <tr
-                          key={vehicle.id}
-                          className="transition-colors hover:bg-gray-50"
-                        >
-                          <td className="whitespace-nowrap px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                                <Image
-                                  src={vehicle.image}
-                                  alt={vehicle.registration}
-                                  fill
-                                  className="object-cover"
-                                />
+                      {filteredVehicles.map((vehicle) => {
+                        const status = getVehicleStatus(vehicle);
+                        return (
+                          <tr
+                            key={vehicle.id}
+                            className="transition-colors hover:bg-gray-50"
+                          >
+                            <td className="whitespace-nowrap px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                                  {vehicle.images &&
+                                  vehicle.images.length > 0 ? (
+                                    <Image
+                                      src={vehicle.images[0]}
+                                      alt={vehicle.licensePlate}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center">
+                                      <FaBus className="h-6 w-6 text-gray-300" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="font-medium text-gray-900">
+                                  {vehicle.licensePlate}
+                                </div>
                               </div>
-                              <div className="font-medium text-gray-900">
-                                {vehicle.registration}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
-                            {vehicle.type}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
-                            {vehicle.capacity} seats
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(
-                                vehicle.status,
-                              )}`}
-                            >
-                              {vehicle.status}
-                            </span>
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {vehicle.status !== "pending" && (
-                              <div className="flex items-center gap-1 text-sm text-gray-900">
-                                <FaStar className="h-3.5 w-3.5 text-yellow-400" />
-                                {vehicle.rating}
-                              </div>
-                            )}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Link
-                                href={`/owner/fleet/${vehicle.id}/edit`}
-                                className="rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                              {vehicle.type}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                              {vehicle.seats} seats
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4">
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(
+                                  status,
+                                )}`}
                               >
-                                <FaEdit className="h-4 w-4" />
-                              </Link>
-                              <Link
-                                href={`/owner/fleet/${vehicle.id}`}
-                                className="rounded p-1.5 text-[#20B0E9] transition-colors hover:bg-blue-50"
-                              >
-                                <FaEye className="h-4 w-4" />
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                {status}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4">
+                              {status !== "pending" && (
+                                <div className="flex items-center gap-1 text-sm text-gray-900">
+                                  <FaStar className="h-3.5 w-3.5 text-yellow-400" />
+                                  {vehicle.rating || "N/A"}
+                                </div>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Link
+                                  href={`/owner/fleet/${vehicle.id}/edit`}
+                                  className="rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
+                                >
+                                  <FaEdit className="h-4 w-4" />
+                                </Link>
+                                <Link
+                                  href={`/owner/fleet/${vehicle.id}`}
+                                  className="rounded p-1.5 text-[#20B0E9] transition-colors hover:bg-blue-50"
+                                >
+                                  <FaEye className="h-4 w-4" />
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
-            ) : (
-              /* Empty State */
-              <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
-                <div className="mx-auto max-w-sm">
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-                    <FaBus className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="mb-2 font-semibold text-gray-900">
-                    No Vehicles Found
-                  </h3>
-                  <p className="mb-6 text-sm text-gray-600">
-                    {activeTab === "all"
-                      ? "You haven't added any vehicles yet. Start by adding your first vehicle."
-                      : `No ${activeTab} vehicles found.`}
-                  </p>
-                  <Link
-                    href={`/${locale}/owner/fleet/add`}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
-                  >
-                    <FaPlus className="h-4 w-4" />
-                    Add Your First Vehicle
-                  </Link>
+            ) : null
+          ) : (
+            /* Empty State */
+            <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
+              <div className="mx-auto max-w-sm">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                  <FaBus className="h-8 w-8 text-gray-400" />
                 </div>
+                <h3 className="mb-2 font-semibold text-gray-900">
+                  No Vehicles Found
+                </h3>
+                <p className="mb-6 text-sm text-gray-600">
+                  {activeTab === "all"
+                    ? "You haven't added any vehicles yet. Start by adding your first vehicle."
+                    : `No ${activeTab} vehicles found.`}
+                </p>
+                <Link
+                  href={`/${locale}/owner/fleet/add`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
+                >
+                  <FaPlus className="h-4 w-4" />
+                  Add Your First Vehicle
+                </Link>
               </div>
-            )
-          ) : null}
+            </div>
+          )}
         </div>
       </div>
     </MainLayout>

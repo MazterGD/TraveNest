@@ -4,105 +4,57 @@ import {
   authorize,
   optionalAuth,
 } from "../../middleware/auth.js";
+import { validate } from "../../middleware/validate.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
-import type { Request, Response } from "express";
+import * as vehicleController from "./vehicle.controller.js";
+import {
+  createVehicleSchema,
+  updateVehicleSchema,
+  uploadPhotosSchema,
+  uploadDocumentsSchema,
+  getVehicleByIdSchema,
+  deleteVehicleSchema,
+} from "./vehicle.schemas.js";
 
 const router = Router();
 
 // Public routes
 // Get all vehicles (with filters)
-router.get(
-  "/",
-  optionalAuth,
-  asyncHandler(async (req: Request, res: Response) => {
-    const {
-      type,
-      location,
-      minPrice,
-      maxPrice,
-      seats,
-      page = 1,
-      limit = 10,
-    } = req.query;
+router.get("/", optionalAuth, asyncHandler(vehicleController.getAllVehicles));
 
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: {
-        vehicles: [],
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 0,
-          totalPages: 0,
-        },
-      },
-    });
-  })
+// Protected routes (Owner only)
+// Get my vehicles - MUST come before /:id
+router.get(
+  "/my",
+  authenticate,
+  authorize("owner"),
+  asyncHandler(vehicleController.getMyVehicles),
 );
 
-// Get vehicle by ID
+// Get vehicle by ID - parameterized routes come after specific routes
 router.get(
   "/:id",
   optionalAuth,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: { vehicle: { id } },
-    });
-  })
+  validate(getVehicleByIdSchema),
+  asyncHandler(vehicleController.getVehicleById),
 );
 
-// Get vehicle availability
-router.get(
-  "/:id/availability",
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { startDate, endDate } = req.query;
-
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: {
-        vehicleId: id,
-        available: true,
-        unavailableDates: [],
-      },
-    });
-  })
-);
-
-// Protected routes (Owner only)
 // Create a vehicle
 router.post(
   "/",
   authenticate,
   authorize("owner", "admin"),
-  asyncHandler(async (req: Request, res: Response) => {
-    // TODO: Implement with database
-    res.status(201).json({
-      success: true,
-      message: "Vehicle created successfully",
-      data: { vehicle: req.body },
-    });
-  })
+  validate(createVehicleSchema),
+  asyncHandler(vehicleController.createVehicle),
 );
 
 // Update a vehicle
-router.put(
+router.patch(
   "/:id",
   authenticate,
   authorize("owner", "admin"),
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database (check ownership)
-    res.json({
-      success: true,
-      message: `Vehicle ${id} updated successfully`,
-    });
-  })
+  validate(updateVehicleSchema),
+  asyncHandler(vehicleController.updateVehicle),
 );
 
 // Delete a vehicle
@@ -110,58 +62,42 @@ router.delete(
   "/:id",
   authenticate,
   authorize("owner", "admin"),
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database (check ownership)
-    res.json({
-      success: true,
-      message: `Vehicle ${id} deleted successfully`,
-    });
-  })
+  validate(deleteVehicleSchema),
+  asyncHandler(vehicleController.deleteVehicle),
 );
 
-// Get owner's vehicles
-router.get(
-  "/owner/my-vehicles",
+// Upload vehicle photos
+router.post(
+  "/:id/photos",
   authenticate,
   authorize("owner", "admin"),
-  asyncHandler(async (req: Request, res: Response) => {
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: { vehicles: [] },
-    });
-  })
+  validate(uploadPhotosSchema),
+  asyncHandler(vehicleController.uploadPhotos),
 );
 
-// Update vehicle availability
+// Upload vehicle documents
+router.post(
+  "/:id/documents",
+  authenticate,
+  authorize("owner", "admin"),
+  validate(uploadDocumentsSchema),
+  asyncHandler(vehicleController.uploadDocuments),
+);
+
+// Toggle vehicle availability
 router.patch(
   "/:id/availability",
   authenticate,
   authorize("owner", "admin"),
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      message: `Vehicle ${id} availability updated`,
-    });
-  })
+  asyncHandler(vehicleController.toggleAvailability),
 );
 
-// Upload vehicle images
-router.post(
-  "/:id/images",
+// Toggle vehicle status (isActive)
+router.patch(
+  "/:id/status",
   authenticate,
   authorize("owner", "admin"),
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement file upload
-    res.json({
-      success: true,
-      message: `Images uploaded for vehicle ${id}`,
-    });
-  })
+  asyncHandler(vehicleController.toggleStatus),
 );
 
 export default router;

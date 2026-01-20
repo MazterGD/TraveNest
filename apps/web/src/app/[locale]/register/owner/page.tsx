@@ -38,7 +38,14 @@ interface VehicleData {
   model: string;
   year: string;
   seatingCapacity: string;
+  color: string;
   acType: string;
+  condition: string;
+  description: string;
+  pricePerKm: string;
+  pricePerDay: string;
+  driverAllowance: string;
+  amenities: string[];
   photos: UploadedFile[]; // Vehicle photos (optional)
   documents: {
     license: UploadedFile | null;
@@ -60,6 +67,23 @@ const AC_TYPES = [
   { value: "full-ac", label: "Full AC" },
   { value: "ac", label: "AC" },
   { value: "non-ac", label: "Non-AC" },
+];
+
+const CONDITION_OPTIONS = [
+  { value: "excellent", label: "Excellent" },
+  { value: "good", label: "Good" },
+  { value: "fair", label: "Fair" },
+];
+
+const AMENITIES_LIST = [
+  { id: "wifi", label: "WiFi" },
+  { id: "ac", label: "Air Conditioning" },
+  { id: "music", label: "Music System" },
+  { id: "usb", label: "USB Charging" },
+  { id: "tv", label: "TV/Entertainment" },
+  { id: "reclining", label: "Reclining Seats" },
+  { id: "reading", label: "Reading Lights" },
+  { id: "gps", label: "GPS Tracking" },
 ];
 
 const DISTRICTS = [
@@ -146,7 +170,14 @@ export default function OwnerRegistrationPage() {
       model: "",
       year: "",
       seatingCapacity: "",
+      color: "",
       acType: "",
+      condition: "",
+      description: "",
+      pricePerKm: "",
+      pricePerDay: "",
+      driverAllowance: "",
+      amenities: [],
       photos: [],
       documents: {
         license: null,
@@ -316,7 +347,14 @@ export default function OwnerRegistrationPage() {
         model: "",
         year: "",
         seatingCapacity: "",
+        color: "",
         acType: "",
+        condition: "",
+        description: "",
+        pricePerKm: "",
+        pricePerDay: "",
+        driverAllowance: "",
+        amenities: [],
         photos: [],
         documents: {
           license: null,
@@ -1298,6 +1336,197 @@ export default function OwnerRegistrationPage() {
                                   </option>
                                 ))}
                               </select>
+                            </div>
+
+                            <div>
+                              <label className="block font-semibold text-gray-800 mb-2">
+                                Color *
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={vehicle.color}
+                                onChange={(e) =>
+                                  updateVehicle(index, "color", e.target.value)
+                                }
+                                placeholder="White"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block font-semibold text-gray-800 mb-2">
+                                Condition *
+                              </label>
+                              <select
+                                required
+                                value={vehicle.condition}
+                                onChange={(e) =>
+                                  updateVehicle(
+                                    index,
+                                    "condition",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none bg-gray-50 focus:bg-white cursor-pointer"
+                              >
+                                <option value="">Select condition</option>
+                                {CONDITION_OPTIONS.map((option) => (
+                                  <option
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block font-semibold text-gray-800 mb-2">
+                                Price per Kilometer *
+                              </label>
+                              <input
+                                type="number"
+                                required
+                                value={vehicle.pricePerKm}
+                                onChange={(e) =>
+                                  updateVehicle(
+                                    index,
+                                    "pricePerKm",
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="85"
+                                min="0"
+                                step="0.01"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">
+                                LKR per kilometer
+                              </p>
+                            </div>
+
+                            <div>
+                              <label className="block font-semibold text-gray-800 mb-2">
+                                Price per Day *
+                              </label>
+                              <input
+                                type="number"
+                                required
+                                value={vehicle.pricePerDay}
+                                onChange={(e) =>
+                                  updateVehicle(
+                                    index,
+                                    "pricePerDay",
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="25000"
+                                min="0"
+                                step="0.01"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">
+                                LKR per day
+                              </p>
+                            </div>
+
+                            <div>
+                              <label className="block font-semibold text-gray-800 mb-2">
+                                Driver Allowance
+                              </label>
+                              <input
+                                type="number"
+                                value={vehicle.driverAllowance}
+                                onChange={(e) =>
+                                  updateVehicle(
+                                    index,
+                                    "driverAllowance",
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="5000"
+                                min="0"
+                                step="0.01"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Daily driver allowance (LKR)
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <div className="mt-4">
+                            <label className="block font-semibold text-gray-800 mb-2">
+                              Description
+                            </label>
+                            <textarea
+                              value={vehicle.description}
+                              onChange={(e) =>
+                                updateVehicle(
+                                  index,
+                                  "description",
+                                  e.target.value,
+                                )
+                              }
+                              rows={4}
+                              placeholder="Describe your vehicle, seating layout, and any special features..."
+                              maxLength={500}
+                              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
+                            />
+                            <p className="text-xs text-gray-500 mt-1 text-right">
+                              {vehicle.description.length}/500 characters
+                            </p>
+                          </div>
+
+                          {/* Amenities Selection */}
+                          <div className="pt-4 border-t border-gray-200">
+                            <h4 className="text-lg font-bold text-gray-900 mb-4">
+                              Amenities
+                            </h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                              {AMENITIES_LIST.map((amenity) => {
+                                const isSelected = vehicle.amenities.includes(
+                                  amenity.id,
+                                );
+                                return (
+                                  <label
+                                    key={amenity.id}
+                                    className={`relative flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                      isSelected
+                                        ? "border-primary bg-primary/5"
+                                        : "border-gray-200 hover:border-gray-300"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={(e) => {
+                                        const updated = [...vehicles];
+                                        if (e.target.checked) {
+                                          updated[index].amenities = [
+                                            ...updated[index].amenities,
+                                            amenity.id,
+                                          ];
+                                        } else {
+                                          updated[index].amenities = updated[
+                                            index
+                                          ].amenities.filter(
+                                            (a) => a !== amenity.id,
+                                          );
+                                        }
+                                        setVehicles(updated);
+                                      }}
+                                      className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">
+                                      {amenity.label}
+                                    </span>
+                                  </label>
+                                );
+                              })}
                             </div>
                           </div>
 

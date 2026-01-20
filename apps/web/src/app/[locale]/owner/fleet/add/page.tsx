@@ -2,14 +2,22 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { LoadingSpinner } from "@/components/ui";
+import {
+  LoadingSpinner,
+  Input,
+  Select,
+  TextArea,
+  FileUpload,
+} from "@/components/ui";
+import type { UploadedFile } from "@/components/ui/FileUpload";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
-import { FaArrowLeft, FaUpload, FaCheckCircle, FaTimes } from "react-icons/fa";
+import { FaArrowLeft, FaCheckCircle, FaUpload, FaTimes } from "react-icons/fa";
+import { vehicleService } from "@/lib/api/services";
 
-type FormSection = "basic" | "pricing" | "photos" | "amenities";
+type FormSection = "basic" | "pricing" | "photos" | "documents" | "amenities";
 
 interface FormData {
   registration: string;
@@ -24,18 +32,29 @@ interface FormData {
   description: string;
   pricePerKm: string;
   pricePerDay: string;
-  driverAllowance?: string;
+  driverAllowance: string;
   gpsEnabled: boolean;
 }
 
 export default function AddVehiclePage() {
   const { user } = useAuthStore();
   const params = useParams();
+  const router = useRouter();
   const locale = params.locale as string;
   const [activeSection, setActiveSection] = useState<FormSection>("basic");
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [primaryPhoto, setPrimaryPhoto] = useState<File | null>(null);
-  const [additionalPhotos, setAdditionalPhotos] = useState<File[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [documents, setDocuments] = useState<{
+    license: UploadedFile | null;
+    insurance: UploadedFile | null;
+    registrationCertificate: UploadedFile | null;
+  }>({
+    license: null,
+    insurance: null,
+    registrationCertificate: null,
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<FormData>({
     registration: "",
@@ -50,6 +69,7 @@ export default function AddVehiclePage() {
     description: "",
     pricePerKm: "",
     pricePerDay: "",
+    driverAllowance: "",
     gpsEnabled: false,
   });
 
@@ -67,6 +87,13 @@ export default function AddVehiclePage() {
     setFormData({
       ...formData,
       [name]: type === "checkbox" ? checked : value,
+    });
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({
+      ...formData,
+      [name]: value,
     });
   };
 
@@ -93,18 +120,67 @@ export default function AddVehiclePage() {
     { id: "basic", label: "Basic Information" },
     { id: "pricing", label: "Pricing" },
     { id: "photos", label: "Photos" },
+    { id: "documents", label: "Documents" },
     { id: "amenities", label: "Amenities & Features" },
   ] as const;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission
-    console.log({
-      formData,
-      selectedAmenities,
-      primaryPhoto,
-      additionalPhotos,
-    });
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      // Validate required fields
+      if (!photos.length) {
+        setErrors({ photos: "At least one photo is required" });
+        setActiveSection("photos");
+        return;
+      }
+
+      // Map form data to API format
+      const vehicleData = {
+        registrationNumber: formData.registration,
+        type: formData.type as
+          | "mini_bus"
+          | "standard_bus"
+          | "luxury_bus"
+          | "coach",
+        brand: formData.make,
+        model: formData.model,
+        year: parseInt(formData.year),
+        seatingCapacity: parseInt(formData.capacity),
+        hasAC: formData.acType !== "non-ac",
+        hasWifi: selectedAmenities.includes("wifi"),
+        hasTV: selectedAmenities.includes("tv"),
+        hasToilet: false, // Add this to amenities if needed
+        pricePerKm: parseFloat(formData.pricePerKm),
+        pricePerDay: parseFloat(formData.pricePerDay),
+        images: photos.map((photo, index) => `vehicle_${index}_${photo.name}`), // Placeholder
+        description: formData.description,
+      };
+
+      // Create vehicle
+      const vehicle = await vehicleService.create(vehicleData);
+
+      // Upload photos
+      if (photos.length > 0) {
+        await vehicleService.uploadPhotos(
+          vehicle.id,
+          photos.map((photo, index) => ({
+            file: photo,
+            isPrimary: index === 0,
+          })),
+        );
+      }
+
+      // Redirect to fleet page
+      router.push(`/${locale}/owner/fleet`);
+    } catch (error: any) {
+      console.error("Error creating vehicle:", error);
+      setErrors({ submit: error.message || "Failed to create vehicle" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Show loading while checking auth state
@@ -163,6 +239,12 @@ export default function AddVehiclePage() {
 
             <div className="p-8">
               <form onSubmit={handleSubmit}>
+                {errors.submit && (
+                  <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-600">
+                    {errors.submit}
+                  </div>
+                )}
+
                 {/* Basic Information */}
                 {activeSection === "basic" && (
                   <div className="max-w-3xl space-y-6">
@@ -176,163 +258,128 @@ export default function AddVehiclePage() {
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Registration Number *
-                        </label>
-                        <input
-                          type="text"
-                          name="registration"
-                          required
-                          value={formData.registration}
-                          onChange={handleChange}
-                          placeholder="ABC-1234"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
+                      <Input
+                        label="Registration Number"
+                        name="registration"
+                        required
+                        value={formData.registration}
+                        onChange={handleChange}
+                        placeholder="ABC-1234"
+                        error={errors.registration}
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Vehicle Type *
-                        </label>
-                        <select
-                          name="type"
-                          required
-                          value={formData.type}
-                          onChange={handleChange}
-                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        >
-                          <option value="">Select type</option>
-                          <option value="luxury">Luxury Coach</option>
-                          <option value="semi-luxury">Semi-Luxury</option>
-                          <option value="standard">Standard Bus</option>
-                          <option value="mini">Mini Bus</option>
-                        </select>
-                      </div>
+                      <Select
+                        label="Vehicle Type"
+                        name="type"
+                        required
+                        value={formData.type}
+                        onChange={(value) => handleSelectChange("type", value)}
+                        options={[
+                          { value: "luxury", label: "Luxury Coach" },
+                          { value: "semi-luxury", label: "Semi-Luxury" },
+                          { value: "standard", label: "Standard Bus" },
+                          { value: "mini", label: "Mini Bus" },
+                        ]}
+                        placeholder="Select type"
+                        error={errors.type}
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Make *
-                        </label>
-                        <input
-                          type="text"
-                          name="make"
-                          required
-                          value={formData.make}
-                          onChange={handleChange}
-                          placeholder="e.g., Ashok Leyland"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
+                      <Input
+                        label="Make"
+                        name="make"
+                        required
+                        value={formData.make}
+                        onChange={handleChange}
+                        placeholder="e.g., Ashok Leyland"
+                        error={errors.make}
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Model *
-                        </label>
-                        <input
-                          type="text"
-                          name="model"
-                          required
-                          value={formData.model}
-                          onChange={handleChange}
-                          placeholder="e.g., 2820"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
+                      <Input
+                        label="Model"
+                        name="model"
+                        required
+                        value={formData.model}
+                        onChange={handleChange}
+                        placeholder="e.g., 2820"
+                        error={errors.model}
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Year *
-                        </label>
-                        <input
-                          type="number"
-                          name="year"
-                          required
-                          value={formData.year}
-                          onChange={handleChange}
-                          placeholder="2022"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
+                      <Input
+                        label="Year"
+                        name="year"
+                        type="number"
+                        required
+                        value={formData.year}
+                        onChange={handleChange}
+                        placeholder="2022"
+                        error={errors.year}
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Seating Capacity *
-                        </label>
-                        <input
-                          type="number"
-                          name="capacity"
-                          required
-                          value={formData.capacity}
-                          onChange={handleChange}
-                          placeholder="45"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
+                      <Input
+                        label="Seating Capacity"
+                        name="capacity"
+                        type="number"
+                        required
+                        value={formData.capacity}
+                        onChange={handleChange}
+                        placeholder="45"
+                        error={errors.capacity}
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Color *
-                        </label>
-                        <input
-                          type="text"
-                          name="color"
-                          required
-                          value={formData.color}
-                          onChange={handleChange}
-                          placeholder="White"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
+                      <Input
+                        label="Color"
+                        name="color"
+                        required
+                        value={formData.color}
+                        onChange={handleChange}
+                        placeholder="White"
+                        error={errors.color}
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          AC Type *
-                        </label>
-                        <select
-                          name="acType"
-                          required
-                          value={formData.acType}
-                          onChange={handleChange}
-                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        >
-                          <option value="">Select AC type</option>
-                          <option value="full-ac">Full AC</option>
-                          <option value="ac">AC</option>
-                          <option value="non-ac">Non-AC</option>
-                        </select>
-                      </div>
+                      <Select
+                        label="AC Type"
+                        name="acType"
+                        required
+                        value={formData.acType}
+                        onChange={(value) =>
+                          handleSelectChange("acType", value)
+                        }
+                        options={[
+                          { value: "full-ac", label: "Full AC" },
+                          { value: "ac", label: "AC" },
+                          { value: "non-ac", label: "Non-AC" },
+                        ]}
+                        placeholder="Select AC type"
+                        error={errors.acType}
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Condition *
-                        </label>
-                        <select
-                          name="condition"
-                          required
-                          value={formData.condition}
-                          onChange={handleChange}
-                          className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        >
-                          <option value="">Select condition</option>
-                          <option value="excellent">Excellent</option>
-                          <option value="good">Good</option>
-                          <option value="fair">Fair</option>
-                        </select>
-                      </div>
+                      <Select
+                        label="Condition"
+                        name="condition"
+                        required
+                        value={formData.condition}
+                        onChange={(value) =>
+                          handleSelectChange("condition", value)
+                        }
+                        options={[
+                          { value: "excellent", label: "Excellent" },
+                          { value: "good", label: "Good" },
+                          { value: "fair", label: "Fair" },
+                        ]}
+                        placeholder="Select condition"
+                        error={errors.condition}
+                      />
 
                       <div className="md:col-span-2">
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Description
-                        </label>
-                        <textarea
+                        <TextArea
+                          label="Description"
                           name="description"
                           value={formData.description}
-                          onChange={handleChange}
+                          onChange={(e) => handleChange(e)}
                           rows={4}
                           placeholder="Describe your vehicle, seating layout, and any special features..."
-                          className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        ></textarea>
+                          maxLength={500}
+                        />
                       </div>
                     </div>
                   </div>
@@ -351,67 +398,39 @@ export default function AddVehiclePage() {
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Price per Kilometer *
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                            LKR
-                          </span>
-                          <input
-                            type="number"
-                            name="pricePerKm"
-                            required
-                            value={formData.pricePerKm}
-                            onChange={handleChange}
-                            placeholder="85"
-                            className="w-full rounded-lg border border-gray-300 py-2 pl-14 pr-3 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                          />
-                        </div>
-                      </div>
+                      <Input
+                        label="Price per Kilometer"
+                        name="pricePerKm"
+                        type="number"
+                        required
+                        value={formData.pricePerKm}
+                        onChange={handleChange}
+                        placeholder="85"
+                        error={errors.pricePerKm}
+                        helperText="LKR per kilometer"
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Price per Day *
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                            LKR
-                          </span>
-                          <input
-                            type="number"
-                            name="pricePerDay"
-                            required
-                            value={formData.pricePerDay}
-                            onChange={handleChange}
-                            placeholder="25000"
-                            className="w-full rounded-lg border border-gray-300 py-2 pl-14 pr-3 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
-                          />
-                        </div>
-                      </div>
+                      <Input
+                        label="Price per Day"
+                        name="pricePerDay"
+                        type="number"
+                        required
+                        value={formData.pricePerDay}
+                        onChange={handleChange}
+                        placeholder="25000"
+                        error={errors.pricePerDay}
+                        helperText="LKR per day"
+                      />
 
-                      <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Driver Allowance per Day
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                            LKR
-                          </span>
-                          <input
-                            type="number"
-                            name="driverAllowance"
-                            value={formData.driverAllowance || ""}
-                            onChange={handleChange}
-                            placeholder="2500"
-                            className="w-full rounded-lg border border-gray-300 py-2 pl-14 pr-3 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
-                          />
-                        </div>
-                        <p className="mt-1 text-xs text-gray-500">
-                          Optional: Daily allowance for the driver
-                        </p>
-                      </div>
+                      <Input
+                        label="Driver Allowance per Day"
+                        name="driverAllowance"
+                        type="number"
+                        value={formData.driverAllowance}
+                        onChange={handleChange}
+                        placeholder="2500"
+                        helperText="Optional: LKR daily allowance for the driver"
+                      />
                     </div>
 
                     {formData.pricePerKm && formData.pricePerDay && (
@@ -462,79 +481,142 @@ export default function AddVehiclePage() {
                         Vehicle Photos
                       </h3>
                       <p className="mb-6 text-sm text-gray-600">
-                        Upload clear photos of your vehicle
+                        Upload clear photos of your vehicle (first photo will be
+                        primary)
                       </p>
                     </div>
 
-                    <div className="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-gray-400">
-                      <FaUpload className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-                      <div className="mb-1 font-medium text-gray-900">
-                        Upload Primary Photo
-                      </div>
-                      <p className="mb-3 text-sm text-gray-600">
-                        This will be the main photo in listings
-                      </p>
-                      <label className="inline-block cursor-pointer rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]">
-                        Choose File
+                    <div className="space-y-4">
+                      <div
+                        className="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-[#20B0E9]"
+                        onClick={() =>
+                          document.getElementById("photo-upload")?.click()
+                        }
+                      >
+                        <FaUpload className="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                        <div className="mb-1 font-medium text-gray-900">
+                          Upload Vehicle Photos
+                        </div>
+                        <p className="mb-3 text-sm text-gray-600">
+                          Click to select or drag and drop
+                        </p>
                         <input
+                          id="photo-upload"
                           type="file"
+                          multiple
                           accept="image/*"
-                          onChange={(e) =>
-                            setPrimaryPhoto(e.target.files?.[0] || null)
-                          }
+                          onChange={(e) => {
+                            if (e.target.files) {
+                              setPhotos(Array.from(e.target.files));
+                            }
+                          }}
                           className="hidden"
                         />
-                      </label>
-                      <p className="mt-3 text-xs text-gray-500">
-                        JPG, PNG up to 5MB
-                      </p>
-                      {primaryPhoto && (
-                        <div className="mt-4 flex items-center justify-center gap-2 text-sm text-green-600">
-                          <FaCheckCircle className="h-4 w-4" />
-                          {primaryPhoto.name}
-                          <button
-                            type="button"
-                            onClick={() => setPrimaryPhoto(null)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <FaTimes className="h-4 w-4" />
-                          </button>
+                        <p className="text-xs text-gray-500">
+                          JPG, PNG up to 5MB each
+                        </p>
+                      </div>
+
+                      {photos.length > 0 && (
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                          {photos.map((photo, index) => (
+                            <div
+                              key={index}
+                              className="relative rounded-lg border border-gray-200 p-2"
+                            >
+                              <img
+                                src={URL.createObjectURL(photo)}
+                                alt={`Vehicle ${index + 1}`}
+                                className="w-full aspect-video object-cover rounded"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPhotos(
+                                    photos.filter((_, i) => i !== index),
+                                  )
+                                }
+                                className="absolute -top-2 -right-2 p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
+                              >
+                                <FaTimes className="h-3 w-3" />
+                              </button>
+                              {index === 0 && (
+                                <span className="absolute top-1 left-1 bg-[#20B0E9] text-white text-xs px-2 py-0.5 rounded">
+                                  Primary
+                                </span>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       )}
+
+                      {errors.photos && (
+                        <p className="text-sm text-red-500">{errors.photos}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Documents */}
+                {activeSection === "documents" && (
+                  <div className="max-w-3xl space-y-6">
+                    <div>
+                      <h3 className="mb-1 font-semibold text-gray-900">
+                        Vehicle Documents
+                      </h3>
+                      <p className="mb-6 text-sm text-gray-600">
+                        Upload required documents for verification
+                      </p>
                     </div>
 
-                    <div>
-                      <div className="mb-3 text-sm font-medium text-gray-900">
-                        Additional Photos (Optional)
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <FileUpload
+                        label="Driving License"
+                        required
+                        value={documents.license}
+                        onChange={(file) =>
+                          setDocuments({ ...documents, license: file })
+                        }
+                        helpText="Valid heavy vehicle driving license"
+                      />
+
+                      <FileUpload
+                        label="Insurance Certificate"
+                        required
+                        value={documents.insurance}
+                        onChange={(file) =>
+                          setDocuments({ ...documents, insurance: file })
+                        }
+                        helpText="Current vehicle insurance document"
+                      />
+
+                      <div className="md:col-span-2">
+                        <FileUpload
+                          label="Certificate of Registration (CR)"
+                          required
+                          value={documents.registrationCertificate}
+                          onChange={(file) =>
+                            setDocuments({
+                              ...documents,
+                              registrationCertificate: file,
+                            })
+                          }
+                          helpText="Vehicle registration certificate"
+                        />
                       </div>
-                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                        {[1, 2, 3, 4].map((i) => (
-                          <label
-                            key={i}
-                            className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-gray-400"
-                          >
-                            <div className="text-center">
-                              <FaUpload className="mx-auto mb-1 h-6 w-6 text-gray-400" />
-                              <span className="text-xs text-gray-500">
-                                Upload
-                              </span>
-                            </div>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  setAdditionalPhotos((prev) => [
-                                    ...prev,
-                                    file,
-                                  ]);
-                                }
-                              }}
-                            />
-                          </label>
-                        ))}
+                    </div>
+
+                    <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                      <div className="text-sm">
+                        <div className="mb-1 font-medium text-gray-900">
+                          Document Requirements
+                        </div>
+                        <ul className="space-y-1 text-gray-600">
+                          <li>• All documents must be clear and readable</li>
+                          <li>• Accepted formats: PDF, JPG, PNG (Max 5MB)</li>
+                          <li>• Documents must be current and valid</li>
+                          <li>• Documents are reviewed within 24-48 hours</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
@@ -593,16 +675,27 @@ export default function AddVehiclePage() {
                 <div className="mt-8 flex max-w-3xl gap-3 border-t border-gray-200 pt-6">
                   <button
                     type="button"
-                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    disabled={isSubmitting}
+                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Save as Draft
                   </button>
                   <button
                     type="submit"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
+                    disabled={isSubmitting}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Publish Vehicle
-                    <FaCheckCircle className="h-4 w-4" />
+                    {isSubmitting ? (
+                      <>
+                        <LoadingSpinner size="sm" />
+                        Publishing...
+                      </>
+                    ) : (
+                      <>
+                        Publish Vehicle
+                        <FaCheckCircle className="h-4 w-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

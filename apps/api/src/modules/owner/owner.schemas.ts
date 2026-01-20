@@ -84,15 +84,17 @@ export const ownerRegistrationSchema = z.object({
     // Personal information
     firstName: z
       .string()
+      .trim()
       .min(2, "First name must be at least 2 characters")
       .max(50),
     lastName: z
       .string()
+      .trim()
       .min(2, "Last name must be at least 2 characters")
       .max(50),
-    email: z.string().email("Invalid email address").max(254),
-    phone: z.string().min(1, "Phone number is required").max(20),
-    nicNumber: z.string().min(1, "NIC number is required").max(20),
+    email: z.string().trim().email("Invalid email address").max(254),
+    phone: z.string().trim().min(1, "Phone number is required").max(20),
+    nicNumber: z.string().trim().min(1, "NIC number is required").max(20),
 
     // Password
     password: z
@@ -129,3 +131,32 @@ export type VehiclePhotoInput = z.infer<typeof vehiclePhotoSchema>;
 export type OwnerDocumentInput = z.infer<typeof ownerDocumentSchema>;
 export type BusinessProfileInput = z.infer<typeof businessProfileSchema>;
 export type AddressInput = z.infer<typeof addressSchema>;
+
+// Update profile schemas
+export const updatePersonalInfoSchema = z.object({
+  body: z.object({
+    firstName: z.string().min(2).max(50).optional(),
+    lastName: z.string().min(2).max(50).optional(),
+    phone: z.string().min(1).max(20).optional(),
+    nicNumber: z.string().min(1).max(20).optional(),
+  }),
+});
+
+export const updateAddressSchema = z.object({
+  body: z.object({
+    address: z.string().min(1).max(255).optional(),
+    city: z.string().min(1).max(100).optional(),
+    district: z.string().min(1).max(100).optional(),
+    postalCode: z.string().optional(),
+    baseLocation: z.string().min(1).max(100).optional(),
+  }),
+});
+
+export const updateBusinessProfileSchema = z.object({
+  body: businessProfileSchema,
+});
+
+export type UpdatePersonalInfoInput = z.infer<
+  typeof updatePersonalInfoSchema
+>["body"];
+export type UpdateAddressInput = z.infer<typeof updateAddressSchema>["body"];

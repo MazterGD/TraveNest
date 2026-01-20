@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { LoadingSpinner } from "@/components/ui";
+import { LoadingSpinner, FileUpload } from "@/components/ui";
+import type { UploadedFile } from "@/components/ui/FileUpload";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { FaArrowLeft, FaUpload, FaCheckCircle, FaTimes } from "react-icons/fa";
 
-type FormSection = "basic" | "pricing" | "photos" | "amenities";
+type FormSection = "basic" | "pricing" | "photos" | "documents" | "amenities";
 
 interface FormData {
   registration: string;
@@ -36,6 +37,15 @@ export default function EditVehiclePage() {
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [primaryPhoto, setPrimaryPhoto] = useState<File | null>(null);
   const [additionalPhotos, setAdditionalPhotos] = useState<File[]>([]);
+  const [documents, setDocuments] = useState<{
+    license: UploadedFile | null;
+    insurance: UploadedFile | null;
+    registrationCertificate: UploadedFile | null;
+  }>({
+    license: null,
+    insurance: null,
+    registrationCertificate: null,
+  });
   const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState<FormData>({
@@ -121,6 +131,7 @@ export default function EditVehiclePage() {
     { id: "basic", label: "Basic Information" },
     { id: "pricing", label: "Pricing" },
     { id: "photos", label: "Photos" },
+    { id: "documents", label: "Documents" },
     { id: "amenities", label: "Amenities & Features" },
   ] as const;
 
@@ -492,6 +503,71 @@ export default function EditVehiclePage() {
                           </button>
                         </div>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Documents */}
+                {activeSection === "documents" && (
+                  <div className="max-w-3xl space-y-6">
+                    <div>
+                      <h3 className="mb-1 font-semibold text-gray-900">
+                        Vehicle Documents
+                      </h3>
+                      <p className="mb-6 text-sm text-gray-600">
+                        Update vehicle documents for verification
+                      </p>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <FileUpload
+                        label="Driving License"
+                        required
+                        value={documents.license}
+                        onChange={(file) =>
+                          setDocuments({ ...documents, license: file })
+                        }
+                        helpText="Valid heavy vehicle driving license"
+                      />
+
+                      <FileUpload
+                        label="Insurance Certificate"
+                        required
+                        value={documents.insurance}
+                        onChange={(file) =>
+                          setDocuments({ ...documents, insurance: file })
+                        }
+                        helpText="Current vehicle insurance document"
+                      />
+
+                      <div className="md:col-span-2">
+                        <FileUpload
+                          label="Certificate of Registration (CR)"
+                          required
+                          value={documents.registrationCertificate}
+                          onChange={(file) =>
+                            setDocuments({
+                              ...documents,
+                              registrationCertificate: file,
+                            })
+                          }
+                          helpText="Vehicle registration certificate"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                      <div className="text-sm">
+                        <div className="mb-1 font-medium text-gray-900">
+                          Document Requirements
+                        </div>
+                        <ul className="space-y-1 text-gray-600">
+                          <li>• All documents must be clear and readable</li>
+                          <li>• Accepted formats: PDF, JPG, PNG (Max 5MB)</li>
+                          <li>• Documents must be current and valid</li>
+                          <li>• Documents are reviewed within 24-48 hours</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 )}

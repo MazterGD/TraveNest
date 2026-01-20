@@ -27,6 +27,12 @@ export interface User {
   lastName: string;
   phone: string | null;
   avatar: string | null;
+  nicNumber?: string | null;
+  address?: string | null;
+  city?: string | null;
+  district?: string | null;
+  postalCode?: string | null;
+  baseLocation?: string | null;
   role: UserRole;
   status: UserStatus;
   isVerified: boolean;
@@ -72,26 +78,41 @@ export enum VehicleStatus {
 export interface Vehicle {
   id: string;
   ownerId: string;
-  registrationNumber: string;
-  type: VehicleType;
-  make: string;
+  name: string;
+  licensePlate: string;
+  type: VehicleType | string;
+  brand: string;
   model: string;
   year: number;
-  capacity: number;
-  acType: ACType;
-  color: string;
+  seats: number;
+  doors?: number;
+  acType: string; // full-ac, ac, non-ac
+  color?: string;
   description?: string;
-  basePricePerKm: number;
-  basePricePerDay: number;
-  driverAllowancePerDay: number;
-  amenities: string[];
+  fuelType?: string;
+  transmission?: string;
+  mileage?: number;
+  condition?: string; // excellent, good, fair
+  pricePerDay: number;
+  pricePerHour?: number;
+  pricePerKm?: number;
+  driverAllowance?: number;
+  amenities?: string[];
+  features?: any; // JSON field
   images: string[];
-  status: VehicleStatus;
-  gpsEnabled: boolean;
+  location: string;
+  latitude?: number;
+  longitude?: number;
   averageRating?: number;
-  totalBookings: number;
-  createdAt: Date;
-  updatedAt: Date;
+  totalBookings?: number;
+  isAvailable: boolean;
+  isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  // Extended fields from joins
+  photos?: any[];
+  documents?: any[];
+  reviews?: any[];
 }
 
 // Booking Types
@@ -236,12 +257,12 @@ export interface OwnerRegistrationVehiclePhoto {
 }
 
 export interface OwnerRegistrationVehicle {
-  registrationNumber: string;
+  registrationNumber: string; // Maps to licensePlate in DB
   vehicleType: "luxury" | "semi-luxury" | "standard" | "mini";
-  make: string;
+  make: string; // Maps to brand in DB
   model: string;
   year: number;
-  seatingCapacity: number;
+  seatingCapacity: number; // Maps to seats in DB
   acType: "full-ac" | "ac" | "non-ac";
   photos?: OwnerRegistrationVehiclePhoto[];
   documents?: OwnerRegistrationVehicleDocument[];

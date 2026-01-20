@@ -227,7 +227,55 @@ export const vehicleService = {
     ),
 
   /**
-   * Upload vehicle images
+   * Upload vehicle photos
+   */
+  uploadPhotos: async (
+    id: string,
+    photos: Array<{
+      file: File;
+      isPrimary?: boolean;
+    }>,
+  ) => {
+    // For now, return mock URLs - will be replaced with actual upload logic
+    const photoData = photos.map((photo, index) => ({
+      url: `/uploads/vehicles/${id}/${Date.now()}_${photo.file.name}`,
+      fileName: photo.file.name,
+      fileSize: photo.file.size,
+      mimeType: photo.file.type,
+      isPrimary: index === 0 || photo.isPrimary || false,
+    }));
+
+    return api.post<{ photos: any[] }>(`/vehicles/${id}/photos`, {
+      photos: photoData,
+    });
+  },
+
+  /**
+   * Upload vehicle documents
+   */
+  uploadDocuments: async (
+    id: string,
+    documents: Array<{
+      file: File;
+      type: string;
+    }>,
+  ) => {
+    // For now, return mock URLs - will be replaced with actual upload logic
+    const docData = documents.map((doc) => ({
+      url: `/uploads/vehicles/${id}/documents/${Date.now()}_${doc.file.name}`,
+      fileName: doc.file.name,
+      fileSize: doc.file.size,
+      mimeType: doc.file.type,
+      type: doc.type,
+    }));
+
+    return api.post<{ documents: any[] }>(`/vehicles/${id}/documents`, {
+      documents: docData,
+    });
+  },
+
+  /**
+   * Upload vehicle images (deprecated - use uploadPhotos)
    */
   uploadImages: async (id: string, files: File[]) => {
     const formData = new FormData();
@@ -682,6 +730,66 @@ export const ownerRegistrationService = {
         >;
       };
     }>("/owner/profile"),
+};
+
+// ============================================
+// Owner Service - Profile Updates
+// ============================================
+export const ownerService = {
+  /**
+   * Update owner personal information
+   */
+  updatePersonalInfo: (data: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    nicNumber?: string;
+  }) => api.patch<User>("/owner/profile/personal", data),
+
+  /**
+   * Update owner address information
+   */
+  updateAddress: (data: {
+    address?: string;
+    city?: string;
+    district?: string;
+    postalCode?: string;
+    baseLocation?: string;
+  }) => api.patch<User>("/owner/profile/address", data),
+
+  /**
+   * Update or create business profile
+   */
+  updateBusinessProfile: (data: {
+    businessName: string;
+    businessType: string;
+    registrationNumber?: string;
+    taxId?: string;
+  }) =>
+    api.patch<{
+      businessProfile: {
+        id: string;
+        businessName: string;
+        businessType: string;
+      };
+    }>("/owner/profile/business", data),
+
+  /**
+   * Get owner dashboard stats
+   */
+  getDashboardStats: () =>
+    api.get<{
+      totalRevenue: number;
+      activeBookings: number;
+      pendingQuotes: number;
+      averageRating: number;
+      fleetStats: {
+        active: number;
+        inactive: number;
+        pendingReview: number;
+        utilization: number;
+      };
+    }>("/owner/dashboard/stats"),
 };
 
 // Re-export ApiError for convenience

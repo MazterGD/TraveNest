@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 import xss from "xss";
 import prisma from "@travenest/database";
 import { config } from "../../config/index.js";
@@ -56,6 +56,7 @@ export const generateTokens = (user: {
   id: string;
   email: string;
   role: string;
+  tokenVersion?: number;
 }) => {
   const payload: TokenPayload = {
     id: user.id,
@@ -63,12 +64,21 @@ export const generateTokens = (user: {
     role: user.role,
   };
 
+  // Add tokenVersion if provided (for invalidation on password change)
+  if (user.tokenVersion !== undefined) {
+    (payload as any).tokenVersion = user.tokenVersion;
+  }
+
   const accessToken = jwt.sign(payload, config.jwt.secret, {
-    expiresIn: "7d",
-  });
-  const refreshToken = jwt.sign({ id: user.id }, config.jwt.refreshSecret, {
-    expiresIn: "30d",
-  });
+    expiresIn: config.jwt.expiresIn,
+  } as SignOptions);
+  const refreshToken = jwt.sign(
+    { id: user.id, tokenVersion: user.tokenVersion },
+    config.jwt.refreshSecret,
+    {
+      expiresIn: config.jwt.refreshExpiresIn,
+    } as SignOptions,
+  );
 
   return { accessToken, refreshToken };
 };
@@ -135,8 +145,13 @@ export const registerUser = async (data: RegisterInput) => {
     },
   });
 
-  // Generate tokens
-  const tokens = generateTokens(user);
+  // Generate tokens with tokenVersion
+  const tokens = generateTokens({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    tokenVersion: user.tokenVersion,
+  });
 
   // Return user without password
   return {
@@ -161,6 +176,17 @@ export const loginUser = async (data: LoginInput) => {
     );
   }
 
+  // Check if account is locked
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    const minutesLeft = Math.ceil(
+      (user.lockedUntil.getTime() - Date.now()) / (1000 * 60),
+    );
+    throw ApiError.forbidden(
+      `Account is locked. Try again in ${minutesLeft} minute(s).`,
+      "ACCOUNT_LOCKED",
+    );
+  }
+
   // Check if user is active
   if (user.status !== UserStatus.ACTIVE) {
     throw ApiError.forbidden(
@@ -173,14 +199,62 @@ export const loginUser = async (data: LoginInput) => {
   // Verify password
   const isPasswordValid = await bcrypt.compare(data.password, user.password);
   if (!isPasswordValid) {
-    throw ApiError.unauthorized(
-      "Invalid email or password",
-      "INVALID_CREDENTIALS",
-    );
+    // Increment failed login attempts
+    const failedAttempts = user.failedLoginAttempts + 1;
+    const MAX_FAILED_ATTEMPTS = 5;
+    const LOCK_DURATION_MINUTES = 15;
+
+    if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+      // Lock account for 15 minutes
+      const lockedUntil = new Date(
+        Date.now() + LOCK_DURATION_MINUTES * 60 * 1000,
+      );
+
+      // Use updateMany to avoid P2025 error if record was deleted
+      await prisma.user.updateMany({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: failedAttempts,
+          lockedUntil,
+        },
+      });
+
+      throw ApiError.forbidden(
+        `Too many failed login attempts. Account locked for ${LOCK_DURATION_MINUTES} minutes.`,
+        "ACCOUNT_LOCKED",
+      );
+    } else {
+      // Update failed attempts - use updateMany to avoid P2025 error if record was deleted
+      await prisma.user.updateMany({
+        where: { id: user.id },
+        data: { failedLoginAttempts: failedAttempts },
+      });
+
+      throw ApiError.unauthorized(
+        "Invalid email or password",
+        "INVALID_CREDENTIALS",
+      );
+    }
   }
 
-  // Generate tokens
-  const tokens = generateTokens(user);
+  // Reset failed login attempts on successful login and unlock account
+  // Use updateMany to avoid P2025 error if record was deleted
+  await prisma.user.updateMany({
+    where: { id: user.id },
+    data: {
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      lastLoginAt: new Date(),
+    },
+  });
+
+  // Generate tokens with tokenVersion for invalidation on password change
+  const tokens = generateTokens({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    tokenVersion: user.tokenVersion,
+  });
 
   // Return user without password
   return {
@@ -191,6 +265,7 @@ export const loginUser = async (data: LoginInput) => {
 
 /**
  * Refresh access token using refresh token
+ * Implements token rotation: issues new refresh token and invalidates old one
  */
 export const refreshUserTokens = async (refreshToken: string) => {
   if (!refreshToken) {
@@ -200,6 +275,7 @@ export const refreshUserTokens = async (refreshToken: string) => {
   try {
     const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret) as {
       id: string;
+      tokenVersion?: number;
     };
 
     // Find user in database
@@ -215,8 +291,27 @@ export const refreshUserTokens = async (refreshToken: string) => {
       throw ApiError.forbidden("Account is not active");
     }
 
-    // Generate new tokens
-    return generateTokens(user);
+    // Validate token version (if token was issued before password change, reject it)
+    if (
+      decoded.tokenVersion !== undefined &&
+      decoded.tokenVersion !== user.tokenVersion
+    ) {
+      throw ApiError.unauthorized(
+        "Token has been invalidated. Please login again.",
+        "TOKEN_INVALIDATED",
+      );
+    }
+
+    // Generate NEW tokens (token rotation)
+    // Old refresh token is now invalid, client must use new one
+    const newTokens = generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      tokenVersion: user.tokenVersion,
+    });
+
+    return newTokens;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       throw ApiError.unauthorized("Refresh token has expired", "TOKEN_EXPIRED");
@@ -268,13 +363,16 @@ export const changeUserPassword = async (
   // Hash new password
   const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-  // Update password in database
+  // Update password and increment tokenVersion to invalidate all existing tokens
   await prisma.user.update({
     where: { id: userId },
-    data: { password: hashedPassword },
+    data: {
+      password: hashedPassword,
+      tokenVersion: user.tokenVersion + 1, // Invalidate all existing tokens
+    },
   });
 
-  return { message: "Password changed successfully" };
+  return { message: "Password changed successfully. Please login again." };
 };
 
 /**
@@ -290,63 +388,87 @@ export const generatePasswordResetToken = async (email: string) => {
     return { message: "If the email exists, a reset link will be sent" };
   }
 
-  // Generate reset token with short expiry
-  const resetToken = jwt.sign(
-    { id: user.id, purpose: "password-reset" },
-    config.jwt.secret,
-    { expiresIn: "1h" },
-  );
+  // Generate random token (use crypto for cryptographic randomness)
+  const crypto = await import("crypto");
+  const rawToken = crypto.randomBytes(32).toString("hex");
 
-  // TODO: Store reset token hash in database and send email
+  // Hash token before storing in database
+  const hashedToken = await bcrypt.hash(rawToken, 10);
+
+  // Store hashed token in database with 1-hour expiry
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await prisma.passwordResetToken.create({
+    data: {
+      userId: user.id,
+      token: hashedToken,
+      expiresAt,
+    },
+  });
+
+  // TODO: Send email with rawToken (not hashedToken)
   // For now, log token in development
   if (config.env === "development") {
-    console.log(`Password reset token for ${email}: ${resetToken}`);
+    console.log(`Password reset token for ${email}: ${rawToken}`);
+    console.log(`Reset URL: ${config.appUrl}/reset-password?token=${rawToken}`);
   }
 
   return { message: "If the email exists, a reset link will be sent" };
 };
 
 /**
- * Reset password with token
+ * Reset password with token (single-use token from database)
  */
 export const resetUserPassword = async (token: string, newPassword: string) => {
-  try {
-    const decoded = jwt.verify(token, config.jwt.secret) as {
-      id: string;
-      purpose: string;
-    };
+  // Find all valid (non-expired, non-used) reset tokens
+  const resetTokens = await prisma.passwordResetToken.findMany({
+    where: {
+      expiresAt: { gt: new Date() },
+      usedAt: null,
+    },
+    include: {
+      user: true,
+    },
+  });
 
-    if (decoded.purpose !== "password-reset") {
-      throw ApiError.badRequest("Invalid reset token");
+  // Find matching token by comparing hashes
+  let matchedResetToken = null;
+  for (const resetToken of resetTokens) {
+    const isMatch = await bcrypt.compare(token, resetToken.token);
+    if (isMatch) {
+      matchedResetToken = resetToken;
+      break;
     }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-    });
-
-    if (!user) {
-      throw ApiError.badRequest("Invalid reset token");
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-    // Update password
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { password: hashedPassword },
-    });
-
-    return { message: "Password reset successfully" };
-  } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      throw ApiError.badRequest("Reset token has expired");
-    }
-    if (error instanceof jwt.JsonWebTokenError) {
-      throw ApiError.badRequest("Invalid reset token");
-    }
-    throw error;
   }
+
+  if (!matchedResetToken) {
+    throw ApiError.badRequest("Invalid or expired reset token");
+  }
+
+  // Hash new password
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  // Update password, increment tokenVersion, and mark token as used
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: matchedResetToken.userId },
+      data: {
+        password: hashedPassword,
+        tokenVersion: matchedResetToken.user.tokenVersion + 1, // Invalidate all tokens
+        failedLoginAttempts: 0, // Reset failed attempts
+        lockedUntil: null, // Unlock account if locked
+      },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: matchedResetToken.id },
+      data: { usedAt: new Date() }, // Mark as used (single-use)
+    }),
+  ]);
+
+  return {
+    message:
+      "Password reset successfully. Please login with your new password.",
+  };
 };
 
 // ============================================

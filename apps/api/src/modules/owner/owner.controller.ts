@@ -38,7 +38,7 @@ export const getProfile = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    data: { profile },
+    data: profile,
   });
 };
 
@@ -63,5 +63,67 @@ export const verifyOwner = async (req: Request, res: Response) => {
       ? "Owner verified successfully"
       : "Owner verification revoked",
     data: { owner },
+  });
+};
+
+/**
+ * Update personal information
+ * PATCH /api/v1/owner/profile/personal
+ */
+export const updatePersonalInfo = async (req: Request, res: Response) => {
+  const ownerId = req.user!.id;
+  const updatedUser = await ownerService.updatePersonalInfo(ownerId, req.body);
+
+  res.json({
+    success: true,
+    message: "Personal information updated successfully",
+    data: updatedUser,
+  });
+};
+
+/**
+ * Update address information
+ * PATCH /api/v1/owner/profile/address
+ */
+export const updateAddress = async (req: Request, res: Response) => {
+  const ownerId = req.user!.id;
+  const updatedUser = await ownerService.updateAddress(ownerId, req.body);
+
+  res.json({
+    success: true,
+    message: "Address updated successfully",
+    data: updatedUser,
+  });
+};
+
+/**
+ * Update business profile
+ * PATCH /api/v1/owner/profile/business
+ */
+export const updateBusinessProfile = async (req: Request, res: Response) => {
+  const ownerId = req.user!.id;
+  const businessProfile = await ownerService.updateBusinessProfile(
+    ownerId,
+    req.body,
+  );
+
+  res.json({
+    success: true,
+    message: "Business profile updated successfully",
+    data: { businessProfile },
+  });
+};
+
+/**
+ * Get dashboard statistics
+ * GET /api/v1/owner/dashboard/stats
+ */
+export const getDashboardStats = async (req: Request, res: Response) => {
+  const ownerId = req.user!.id;
+  const stats = await ownerService.getDashboardStats(ownerId);
+
+  res.json({
+    success: true,
+    data: stats,
   });
 };

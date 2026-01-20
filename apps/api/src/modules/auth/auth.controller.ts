@@ -1,6 +1,7 @@
 import { type Request, type Response, type NextFunction } from "express";
 import * as authService from "./auth.service.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
+import { setCSRFToken } from "../../middleware/csrf.js";
 
 // Register a new user
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -13,6 +14,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     sameSite: "strict",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
+
+  // Set CSRF token
+  setCSRFToken(res);
 
   res.status(201).json({
     success: true,
@@ -34,6 +38,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     sameSite: "strict",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
+
+  // Set CSRF token
+  setCSRFToken(res);
 
   res.status(200).json({
     success: true,
@@ -64,7 +71,7 @@ export const refreshToken = asyncHandler(
         accessToken: tokens.accessToken,
       },
     });
-  }
+  },
 );
 
 // Logout user
@@ -91,7 +98,7 @@ export const getCurrentUser = asyncHandler(
       success: true,
       data: { user },
     });
-  }
+  },
 );
 
 // Change password
@@ -101,14 +108,14 @@ export const changePassword = asyncHandler(
     const result = await authService.changeUserPassword(
       req.user!.id,
       currentPassword,
-      newPassword
+      newPassword,
     );
 
     res.status(200).json({
       success: true,
       ...result,
     });
-  }
+  },
 );
 
 // Forgot password
@@ -120,7 +127,7 @@ export const forgotPassword = asyncHandler(
       success: true,
       ...result,
     });
-  }
+  },
 );
 
 // Reset password
@@ -133,5 +140,5 @@ export const resetPassword = asyncHandler(
       success: true,
       ...result,
     });
-  }
+  },
 );

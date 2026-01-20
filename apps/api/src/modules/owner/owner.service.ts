@@ -5,6 +5,51 @@ import { ApiError } from "../../middleware/errorHandler.js";
 import { generateTokens, UserRole, UserStatus } from "../auth/auth.service.js";
 import type { OwnerRegistrationInput, VehicleInput } from "./owner.schemas.js";
 
+// Allowed MIME types for validation
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
+
+const ALLOWED_DOCUMENT_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+];
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+/**
+ * Validate file MIME type
+ */
+const validateMimeType = (
+  mimeType: string,
+  allowedTypes: string[],
+  fileName: string,
+) => {
+  if (!allowedTypes.includes(mimeType)) {
+    throw ApiError.badRequest(
+      `Invalid file type for ${fileName}: ${mimeType}. Allowed types: ${allowedTypes.join(", ")}`,
+    );
+  }
+};
+
+/**
+ * Validate file size
+ */
+const validateFileSize = (fileSize: number, fileName: string) => {
+  if (fileSize > MAX_FILE_SIZE) {
+    throw ApiError.badRequest(`File ${fileName} exceeds maximum size of 5MB`);
+  }
+  if (fileSize <= 0) {
+    throw ApiError.badRequest(`Invalid file size for ${fileName}`);
+  }
+};
+
 // Map vehicle type to database enum
 const mapVehicleType = (type: string) => {
   const typeMap: Record<string, string> = {
@@ -42,6 +87,36 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
     throw ApiError.badRequest("Passwords do not match");
   }
 
+  // Validate file uploads (if provided)
+  if (data.ownerDocuments && data.ownerDocuments.length > 0) {
+    for (const doc of data.ownerDocuments) {
+      validateMimeType(
+        doc.mimeType,
+        doc.type === "PROFILE_PHOTO"
+          ? ALLOWED_IMAGE_TYPES
+          : ALLOWED_DOCUMENT_TYPES,
+        doc.fileName,
+      );
+      validateFileSize(doc.fileSize, doc.fileName);
+    }
+  }
+
+  // Validate vehicle photos and documents
+  for (const vehicle of data.vehicles) {
+    if (vehicle.photos && vehicle.photos.length > 0) {
+      for (const photo of vehicle.photos) {
+        validateMimeType(photo.mimeType, ALLOWED_IMAGE_TYPES, photo.fileName);
+        validateFileSize(photo.fileSize, photo.fileName);
+      }
+    }
+    if (vehicle.documents && vehicle.documents.length > 0) {
+      for (const doc of vehicle.documents) {
+        validateMimeType(doc.mimeType, ALLOWED_DOCUMENT_TYPES, doc.fileName);
+        validateFileSize(doc.fileSize, doc.fileName);
+      }
+    }
+  }
+
   // Check if email already exists
   const existingUser = await prisma.user.findUnique({
     where: { email: data.email.toLowerCase() },
@@ -66,10 +141,19 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
   // Hash password
   const hashedPassword = await bcrypt.hash(data.password, 12);
 
-  // Sanitize inputs
-  const sanitizedFirstName = xss(data.firstName.trim());
-  const sanitizedLastName = xss(data.lastName.trim());
-  const sanitizedNicNumber = xss(data.nicNumber.trim());
+  // Sanitize inputs - use stripIgnoreTag to fully remove script/img tags
+  const sanitizedFirstName = xss(data.firstName.trim(), {
+    whiteList: {}, // No HTML tags allowed
+    stripIgnoreTag: true,
+  });
+  const sanitizedLastName = xss(data.lastName.trim(), {
+    whiteList: {},
+    stripIgnoreTag: true,
+  });
+  const sanitizedNicNumber = xss(data.nicNumber.trim(), {
+    whiteList: {},
+    stripIgnoreTag: true,
+  });
 
   // Create owner with all related data in a transaction
   const result = await prisma.$transaction(async (tx) => {
@@ -294,4 +378,139 @@ export const updateOwnerVerification = async (
 
   const { password: _, ...ownerWithoutPassword } = updatedOwner;
   return ownerWithoutPassword;
+};
+
+/**
+ * Update owner personal information
+ */
+export const updatePersonalInfo = async (
+  ownerId: string,
+  data: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    nicNumber?: string;
+  },
+) => {
+  const sanitizedData: any = {};
+
+  if (data.firstName) sanitizedData.firstName = xss(data.firstName.trim());
+  if (data.lastName) sanitizedData.lastName = xss(data.lastName.trim());
+  if (data.phone) sanitizedData.phone = xss(data.phone.trim());
+  if (data.nicNumber) sanitizedData.nicNumber = xss(data.nicNumber.trim());
+
+  const updatedUser = await prisma.user.update({
+    where: { id: ownerId },
+    data: sanitizedData,
+  });
+
+  const { password, ...userWithoutPassword } = updatedUser;
+  return userWithoutPassword;
+};
+
+/**
+ * Update owner address information
+ */
+export const updateAddress = async (
+  ownerId: string,
+  data: {
+    address?: string;
+    city?: string;
+    district?: string;
+    postalCode?: string;
+    baseLocation?: string;
+  },
+) => {
+  const sanitizedData: any = {};
+
+  if (data.address) sanitizedData.address = xss(data.address.trim());
+  if (data.city) sanitizedData.city = xss(data.city.trim());
+  if (data.district) sanitizedData.district = xss(data.district.trim());
+  if (data.postalCode) sanitizedData.postalCode = xss(data.postalCode.trim());
+  if (data.baseLocation)
+    sanitizedData.baseLocation = xss(data.baseLocation.trim());
+
+  const updatedUser = await prisma.user.update({
+    where: { id: ownerId },
+    data: sanitizedData,
+  });
+
+  const { password, ...userWithoutPassword } = updatedUser;
+  return userWithoutPassword;
+};
+
+/**
+ * Update or create business profile
+ */
+export const updateBusinessProfile = async (
+  ownerId: string,
+  data: {
+    businessName: string;
+    businessType: string;
+    registrationNumber?: string;
+    taxId?: string;
+  },
+) => {
+  // Check if business profile exists
+  const existingProfile = await prisma.businessProfile.findUnique({
+    where: { ownerId },
+  });
+
+  const sanitizedData = {
+    businessName: xss(data.businessName.trim()),
+    businessType: data.businessType,
+    registrationNumber: data.registrationNumber
+      ? xss(data.registrationNumber.trim())
+      : null,
+    taxId: data.taxId ? xss(data.taxId.trim()) : null,
+  };
+
+  if (existingProfile) {
+    // Update existing profile
+    return await prisma.businessProfile.update({
+      where: { ownerId },
+      data: sanitizedData,
+    });
+  } else {
+    // Create new profile
+    return await prisma.businessProfile.create({
+      data: {
+        ownerId,
+        ...sanitizedData,
+      },
+    });
+  }
+};
+
+/**
+ * Get dashboard statistics for owner
+ */
+export const getDashboardStats = async (ownerId: string) => {
+  const [totalVehicles, activeVehicles, totalBookings, pendingBookings] =
+    await Promise.all([
+      prisma.vehicle.count({
+        where: { ownerId },
+      }),
+      prisma.vehicle.count({
+        where: { ownerId, isActive: true },
+      }),
+      prisma.booking.count({
+        where: {
+          vehicle: { ownerId },
+        },
+      }),
+      prisma.booking.count({
+        where: {
+          vehicle: { ownerId },
+          status: "PENDING",
+        },
+      }),
+    ]);
+
+  return {
+    totalVehicles,
+    activeVehicles,
+    totalBookings,
+    pendingBookings,
+  };
 };
