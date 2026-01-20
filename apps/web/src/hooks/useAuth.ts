@@ -47,7 +47,7 @@ export function useAuth() {
 
     const initializeAuth = async () => {
       try {
-        const storedAuth = localStorage.getItem("travelnest-auth");
+        const storedAuth = localStorage.getItem("travenest-auth");
         if (storedAuth) {
           const parsed = JSON.parse(storedAuth);
           if (parsed?.state?.token) {
@@ -65,7 +65,7 @@ export function useAuth() {
                 } catch {
                   // Refresh failed - clear auth
                   setLogout();
-                  localStorage.removeItem("travelnest-auth");
+                  localStorage.removeItem("travenest-auth");
                 }
               } else {
                 setLogout();
@@ -85,7 +85,7 @@ export function useAuth() {
     // Listen for auth errors from API client
     const handleAuthError = () => {
       setLogout();
-      localStorage.removeItem("travelnest-auth");
+      localStorage.removeItem("travenest-auth");
       router.push("/login?session=expired");
     };
 
@@ -167,7 +167,7 @@ export function useAuth() {
       // Ignore logout errors
     } finally {
       setLogout();
-      localStorage.removeItem("travelnest-auth");
+      localStorage.removeItem("travenest-auth");
       router.push("/");
     }
   }, [setLogout, router]);

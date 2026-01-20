@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store";
 import { useAdminGuard } from "@/hooks";
 
 export default function AdminDashboardPage() {
-  const t = useTranslations("common");
+  const t = useTranslations();
   const { user } = useAuthStore();
 
   // Protect this route - only admins can access

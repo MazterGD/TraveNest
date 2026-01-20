@@ -60,7 +60,7 @@ interface UpcomingBooking {
 }
 
 export default function OwnerDashboardPage() {
-  const t = useTranslations("common");
+  const t = useTranslations();
   const params = useParams();
   const locale = params.locale as string;
   const { user } = useAuthStore();

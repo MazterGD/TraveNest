@@ -4,7 +4,7 @@ export { Button } from "./Button";
 export { Input } from "./Input";
 export { Select } from "./Select";
 export { TextArea } from "./TextArea";
-export { FileUpload } from "./FileUpload";
+export { FileUpload, type UploadedFile } from "./FileUpload";
 export { ImageUpload } from "./ImageUpload";
 export { LoadingSpinner } from "./LoadingSpinner";
 export {

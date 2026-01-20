@@ -616,7 +616,7 @@ export default function FleetManagementPage() {
                   className="inline-flex items-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
                 >
                   <FaPlus className="h-4 w-4" />
-                  Add Your First Vehicle
+                  Add Your Vehicle
                 </Link>
               </div>
             </div>

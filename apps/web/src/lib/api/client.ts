@@ -122,7 +122,7 @@ class ApiClient {
     if (typeof window === "undefined") return null;
 
     try {
-      const stored = localStorage.getItem("travelnest-auth");
+      const stored = localStorage.getItem("travenest-auth");
       if (stored) {
         const parsed = JSON.parse(stored);
         return parsed.state?.token || null;
@@ -140,10 +140,10 @@ class ApiClient {
     if (typeof window === "undefined") return;
 
     try {
-      const stored = localStorage.getItem("travelnest-auth");
+      const stored = localStorage.getItem("travenest-auth");
       const parsed = stored ? JSON.parse(stored) : { state: {} };
       parsed.state.token = token;
-      localStorage.setItem("travelnest-auth", JSON.stringify(parsed));
+      localStorage.setItem("travenest-auth", JSON.stringify(parsed));
     } catch {
       // Ignore storage errors
     }
@@ -154,7 +154,7 @@ class ApiClient {
    */
   private clearAuthToken(): void {
     if (typeof window === "undefined") return;
-    localStorage.removeItem("travelnest-auth");
+    localStorage.removeItem("travenest-auth");
   }
 
   /**
