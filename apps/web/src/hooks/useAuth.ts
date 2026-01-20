@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store";
-import { authService, userService, ApiError } from "@/lib/api";
+import { authService, userService, ApiError, api } from "@/lib/api";
 import type { User } from "@/types";
 import type {
   LoginInput,
@@ -55,6 +55,8 @@ export function useAuth() {
             try {
               const response = await authService.me();
               setLogin(response.user, parsed.state.token);
+              // Start automatic token refresh
+              api.startTokenRefresh();
             } catch (error) {
               // Token invalid/expired - try refresh
               if (error instanceof ApiError && error.isAuthError()) {
@@ -62,19 +64,24 @@ export function useAuth() {
                   const refreshResponse = await authService.refreshToken();
                   // Re-fetch user with new token
                   setLogin(parsed.state.user, refreshResponse.accessToken);
+                  // Start automatic token refresh
+                  api.startTokenRefresh();
                 } catch {
                   // Refresh failed - clear auth
                   setLogout();
                   localStorage.removeItem("travenest-auth");
+                  api.stopTokenRefresh();
                 }
               } else {
                 setLogout();
+                api.stopTokenRefresh();
               }
             }
           }
         }
       } catch {
         setLogout();
+        api.stopTokenRefresh();
       } finally {
         setLoading(false);
       }
@@ -86,11 +93,17 @@ export function useAuth() {
     const handleAuthError = () => {
       setLogout();
       localStorage.removeItem("travenest-auth");
+      api.stopTokenRefresh();
       router.push("/login?session=expired");
     };
 
     window.addEventListener("auth:error", handleAuthError);
-    return () => window.removeEventListener("auth:error", handleAuthError);
+
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener("auth:error", handleAuthError);
+      api.stopTokenRefresh();
+    };
   }, [setLogin, setLogout, setLoading, router]);
 
   /**
@@ -102,6 +115,8 @@ export function useAuth() {
       try {
         const response = await authService.login(data);
         setLogin(response.user, response.accessToken);
+        // Start automatic token refresh
+        api.startTokenRefresh();
         return { success: true };
       } catch (error) {
         if (error instanceof ApiError) {
@@ -134,6 +149,8 @@ export function useAuth() {
       try {
         const response = await authService.register(data);
         setLogin(response.user, response.accessToken);
+        // Start automatic token refresh
+        api.startTokenRefresh();
         return { success: true };
       } catch (error) {
         if (error instanceof ApiError) {
