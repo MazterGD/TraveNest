@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, Input, Select } from "@/components/ui";
 import { useAuthStore } from "@/store";
@@ -69,6 +69,8 @@ const DISTRICTS = [
 export default function OwnerProfilePage() {
   const { user, updateUser } = useAuthStore();
   const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
   const [activeTab, setActiveTab] = useState<ProfileTab>("personal");
   const [profilePicture, setProfilePicture] = useState<string | null>(
     user?.avatar || null,
@@ -326,7 +328,7 @@ export default function OwnerProfilePage() {
         <header className="border-b border-gray-200 bg-white">
           <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
             <Link
-              href="/owner/dashboard"
+              href={`/${locale}/owner/dashboard`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
               <FaArrowLeft className="h-4 w-4" />

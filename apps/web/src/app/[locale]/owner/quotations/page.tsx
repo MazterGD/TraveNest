@@ -16,6 +16,7 @@ import {
   FaFilter,
   FaFileAlt,
 } from "react-icons/fa";
+import { useParams } from "next/navigation";
 
 type QuotationStatus = "new" | "quoted" | "expired" | "declined";
 
@@ -33,6 +34,8 @@ interface QuotationRequest {
 
 export default function QuotationRequestsPage() {
   const { user } = useAuthStore();
+  const params = useParams();
+  const locale = params.locale as string;
   const [activeTab, setActiveTab] = useState<QuotationStatus>("new");
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,7 +80,7 @@ export default function QuotationRequestsPage() {
         <header className="border-b border-gray-200 bg-white">
           <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
             <Link
-              href="/owner/dashboard"
+              href={`/${locale}/owner/dashboard`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
               <FaArrowLeft className="h-4 w-4" />
