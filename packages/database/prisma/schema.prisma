@@ -315,6 +315,7 @@ model Booking {
   endDate         DateTime
   pickupLocation  String
   dropoffLocation String?
+  totalPassengers Int?
   totalAmount     Float
   status          BookingStatus @default(PENDING)
   notes           String?

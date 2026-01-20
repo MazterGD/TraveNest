@@ -147,11 +147,33 @@ export default function OwnerDashboardPage() {
         }
 
         try {
-          const bookings = await bookingService.getMyBookings();
-          setUpcomingBookings([]);
+          const response = await bookingService.getOwnerBookings();
+          const data = response as any;
+          const bookings = data.bookings || [];
+
+          // Filter for active bookings (CONFIRMED, ONGOING)
+          const activeBookings = bookings.filter(
+            (b: any) => b.status === "CONFIRMED" || b.status === "ONGOING",
+          );
+
+          // Transform upcoming bookings for display
+          const upcoming = bookings
+            .filter(
+              (b: any) => b.status === "CONFIRMED" || b.status === "ONGOING",
+            )
+            .slice(0, 5)
+            .map((b: any) => ({
+              id: b.id,
+              customer: b.customer?.name || "Unknown",
+              route: b.trip?.route || "N/A",
+              date: b.trip?.startDate || "",
+              vehicle: b.vehicle?.registration || "N/A",
+            }));
+
+          setUpcomingBookings(upcoming);
           setMetrics((prev) => ({
             ...prev,
-            activeBookings: (bookings as any[]).length,
+            activeBookings: activeBookings.length,
           }));
         } catch {
           // Booking endpoints may not be implemented yet

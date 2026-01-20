@@ -22,9 +22,19 @@ import {
   FaTimesCircle,
 } from "react-icons/fa";
 import { useParams } from "next/navigation";
+import { useEffect } from "react";
+import { bookingService, ApiError } from "@/lib/api";
 
 type BookingStatus = "upcoming" | "in-progress" | "completed" | "cancelled";
 type PaymentStatus = "pending" | "partial" | "paid" | "refunded";
+
+// Database booking status from API
+type DbBookingStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "ONGOING"
+  | "COMPLETED"
+  | "CANCELLED";
 
 interface Booking {
   id: string;
@@ -49,8 +59,25 @@ interface Booking {
     total: number;
     status: PaymentStatus;
   };
-  status: BookingStatus;
+  status: DbBookingStatus;
   createdAt: string;
+}
+
+// Helper function to map database status to UI category
+function mapDbStatusToUi(dbStatus: DbBookingStatus): BookingStatus {
+  switch (dbStatus) {
+    case "PENDING":
+    case "CONFIRMED":
+      return "upcoming";
+    case "ONGOING":
+      return "in-progress";
+    case "COMPLETED":
+      return "completed";
+    case "CANCELLED":
+      return "cancelled";
+    default:
+      return "upcoming";
+  }
 }
 
 export default function BookingsManagementPage() {
@@ -63,50 +90,56 @@ export default function BookingsManagementPage() {
 
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
-  // Mock data - replace with API
-  const bookings: Booking[] = [
-    {
-      id: "1",
-      bookingRef: "BK-2026-001",
-      customer: {
-        name: "John Doe",
-        phone: "+94 77 123 4567",
-        email: "john@example.com",
-        organization: "ABC Tours",
-      },
-      vehicle: {
-        registration: "WP KA-1234",
-        type: "Luxury Coach",
-      },
-      trip: {
-        startDate: "2026-01-25",
-        endDate: "2026-01-27",
-        route: "Colombo → Kandy → Nuwara Eliya",
-        passengers: 45,
-      },
-      payment: {
-        total: 150000,
-        status: "paid",
-      },
-      status: "upcoming",
-      createdAt: "2026-01-15",
-    },
-  ];
+  // Data from API
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesTab = booking.status === activeTab;
-    const matchesSearch =
-      searchQuery === "" ||
-      booking.bookingRef.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.vehicle.registration
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  useEffect(() => {
+    const load = async () => {
+      if (!user || !isAuthorized) return;
+      setIsLoading(true);
+      try {
+        const response = await bookingService.getOwnerBookings();
+        // API returns { bookings: [...], pagination: {...} }
+        const data = response as any;
+        setBookings(
+          Array.isArray(data.bookings)
+            ? (data.bookings as unknown as Booking[])
+            : [],
+        );
+      } catch (err) {
+        if (err instanceof ApiError) setError(err.message);
+        else setError("Failed to load bookings");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [user, isAuthorized]);
 
-  const getStatusColor = (status: BookingStatus) => {
-    switch (status) {
+  const filteredBookings = Array.isArray(bookings)
+    ? bookings.filter((booking) => {
+        const uiStatus = mapDbStatusToUi(booking.status);
+        const matchesTab = uiStatus === activeTab;
+        const matchesSearch =
+          searchQuery === "" ||
+          booking.bookingRef
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          booking.customer.name
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          booking.vehicle.registration
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+        return matchesTab && matchesSearch;
+      })
+    : [];
+
+  const getStatusColor = (status: DbBookingStatus) => {
+    const uiStatus = mapDbStatusToUi(status);
+    switch (uiStatus) {
       case "upcoming":
         return "bg-blue-100 text-blue-700";
       case "in-progress":
@@ -132,10 +165,15 @@ export default function BookingsManagementPage() {
   };
 
   const tabCounts = {
-    upcoming: bookings.filter((b) => b.status === "upcoming").length,
-    "in-progress": bookings.filter((b) => b.status === "in-progress").length,
-    completed: bookings.filter((b) => b.status === "completed").length,
-    cancelled: bookings.filter((b) => b.status === "cancelled").length,
+    upcoming: bookings.filter((b) => mapDbStatusToUi(b.status) === "upcoming")
+      .length,
+    "in-progress": bookings.filter(
+      (b) => mapDbStatusToUi(b.status) === "in-progress",
+    ).length,
+    completed: bookings.filter((b) => mapDbStatusToUi(b.status) === "completed")
+      .length,
+    cancelled: bookings.filter((b) => mapDbStatusToUi(b.status) === "cancelled")
+      .length,
   };
 
   if (guardLoading || !isAuthorized || !user) {
@@ -155,7 +193,7 @@ export default function BookingsManagementPage() {
         <header className="border-b border-gray-200 bg-white">
           <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
             <Link
-            href={`/${locale}/owner/dashboard`}
+              href={`/${locale}/owner/dashboard`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
               <FaArrowLeft className="h-4 w-4" />
@@ -242,7 +280,11 @@ export default function BookingsManagementPage() {
           {/* Bookings List */}
           {viewMode === "list" && (
             <>
-              {filteredBookings.length > 0 ? (
+              {isLoading ? (
+                <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : filteredBookings.length > 0 ? (
                 <div className="space-y-4">
                   {filteredBookings.map((booking) => (
                     <div
@@ -260,14 +302,17 @@ export default function BookingsManagementPage() {
                                 booking.status,
                               )}`}
                             >
-                              {booking.status.replace("-", " ")}
+                              {mapDbStatusToUi(booking.status).replace(
+                                "-",
+                                " ",
+                              )}
                             </span>
                             <span
                               className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getPaymentStatusColor(
                                 booking.payment.status,
                               )}`}
                             >
-                              {booking.payment.status}
+                              Payment {booking.payment.status}
                             </span>
                           </div>
                           <p className="text-sm text-gray-600">

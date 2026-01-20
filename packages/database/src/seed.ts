@@ -39,7 +39,7 @@ const LOCATIONS: Record<string, { latitude: number; longitude: number }> = {
   Jaffna: { latitude: 9.6615, longitude: 80.0255 },
   Negombo: { latitude: 7.2008, longitude: 79.8737 },
   Anuradhapura: { latitude: 8.3114, longitude: 80.4037 },
-  Matara: { latitude: 5.9549, longitude: 80.5550 },
+  Matara: { latitude: 5.9549, longitude: 80.555 },
   Kurunegala: { latitude: 7.4863, longitude: 80.3647 },
   Batticaloa: { latitude: 7.7102, longitude: 81.6924 },
   Trincomalee: { latitude: 8.5874, longitude: 81.2152 },
@@ -47,8 +47,14 @@ const LOCATIONS: Record<string, { latitude: number; longitude: number }> = {
 
 // Bus makes and models popular in Sri Lanka
 const BUS_MAKES = [
-  { make: "Ashok Leyland", models: ["Viking", "Lynx", "Boss", "Sunshine", "2820"] },
-  { make: "TATA", models: ["Starbus", "Marcopolo", "LP913", "LP1512", "Ultra"] },
+  {
+    make: "Ashok Leyland",
+    models: ["Viking", "Lynx", "Boss", "Sunshine", "2820"],
+  },
+  {
+    make: "TATA",
+    models: ["Starbus", "Marcopolo", "LP913", "LP1512", "Ultra"],
+  },
   { make: "Isuzu", models: ["Journey", "NQR", "NPR", "FTR"] },
   { make: "Mitsubishi", models: ["Rosa", "Fuso", "Canter"] },
   { make: "Toyota", models: ["Coaster", "HiAce"] },
@@ -261,7 +267,9 @@ async function main() {
       businessType: "sole-proprietorship",
     },
   });
-  console.log(`Owner 5: ${owner5.firstName} ${owner5.lastName} - Galle (Pending Verification)`);
+  console.log(
+    `Owner 5: ${owner5.firstName} ${owner5.lastName} - Galle (Pending Verification)`,
+  );
 
   console.log(`\nTotal owners created: ${owners.length}\n`);
 
@@ -328,10 +336,11 @@ async function main() {
   let vehicleIndex = 0;
 
   // Owner 1 Vehicles (Nuwan Perera - Colombo) - 4 Luxury Coaches
-  const owner1Vehicles = [
+  const owner1VehicleData = [
     {
       name: "Ashok Leyland Viking Luxury Coach",
-      description: "Premium luxury coach with reclining seats, entertainment system, and refreshments. Perfect for corporate tours and long-distance travel.",
+      description:
+        "Premium luxury coach with reclining seats, entertainment system, and refreshments. Perfect for corporate tours and long-distance travel.",
       type: "BUS" as const,
       brand: "Ashok Leyland",
       model: "Viking",
@@ -341,7 +350,16 @@ async function main() {
       acType: "FULL_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
-      features: ["Full AC", "Reclining Seats", "Entertainment System", "WiFi", "Refreshments", "USB Charging", "GPS Tracking", "CCTV"],
+      features: [
+        "Full AC",
+        "Reclining Seats",
+        "Entertainment System",
+        "WiFi",
+        "Refreshments",
+        "USB Charging",
+        "GPS Tracking",
+        "CCTV",
+      ],
       pricePerDay: 35000,
       pricePerKm: 85,
       location: "Colombo",
@@ -351,7 +369,8 @@ async function main() {
     },
     {
       name: "TATA Marcopolo Semi-Luxury",
-      description: "Comfortable semi-luxury bus ideal for pilgrimages and family trips. Well-maintained with experienced drivers.",
+      description:
+        "Comfortable semi-luxury bus ideal for pilgrimages and family trips. Well-maintained with experienced drivers.",
       type: "BUS" as const,
       brand: "TATA",
       model: "Marcopolo",
@@ -361,7 +380,13 @@ async function main() {
       acType: "SEMI_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
-      features: ["Semi AC", "Pushback Seats", "PA System", "Luggage Compartment", "First Aid Kit"],
+      features: [
+        "Semi AC",
+        "Pushback Seats",
+        "PA System",
+        "Luggage Compartment",
+        "First Aid Kit",
+      ],
       pricePerDay: 28000,
       pricePerKm: 70,
       location: "Colombo",
@@ -371,7 +396,8 @@ async function main() {
     },
     {
       name: "Toyota Coaster Mini Bus",
-      description: "Compact and efficient mini bus perfect for small groups and city tours. Easy to maneuver through narrow roads.",
+      description:
+        "Compact and efficient mini bus perfect for small groups and city tours. Easy to maneuver through narrow roads.",
       type: "MINI_BUS" as const,
       brand: "Toyota",
       model: "Coaster",
@@ -381,7 +407,13 @@ async function main() {
       acType: "FULL_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "AUTOMATIC" as const,
-      features: ["Full AC", "Comfortable Seats", "TV/DVD", "Microphone", "USB Charging"],
+      features: [
+        "Full AC",
+        "Comfortable Seats",
+        "TV/DVD",
+        "Microphone",
+        "USB Charging",
+      ],
       pricePerDay: 22000,
       pricePerKm: 60,
       location: "Colombo",
@@ -391,7 +423,8 @@ async function main() {
     },
     {
       name: "Isuzu Journey School Service",
-      description: "Reliable school service bus with safety features. Currently available for weekend bookings.",
+      description:
+        "Reliable school service bus with safety features. Currently available for weekend bookings.",
       type: "BUS" as const,
       brand: "Isuzu",
       model: "Journey",
@@ -401,7 +434,13 @@ async function main() {
       acType: "NON_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
-      features: ["Safety Belts", "First Aid", "Fire Extinguisher", "Emergency Exit", "CCTV"],
+      features: [
+        "Safety Belts",
+        "First Aid",
+        "Fire Extinguisher",
+        "Emergency Exit",
+        "CCTV",
+      ],
       pricePerDay: 18000,
       pricePerKm: 50,
       location: "Colombo",
@@ -411,7 +450,7 @@ async function main() {
     },
   ];
 
-  for (const vehicleData of owner1Vehicles) {
+  for (const vehicleData of owner1VehicleData) {
     const coords = LOCATIONS[vehicleData.location];
     await prisma.vehicle.create({
       data: {
@@ -441,13 +480,16 @@ async function main() {
       },
     });
   }
-  console.log(`Created ${owner1Vehicles.length} vehicles for ${owner1.firstName} ${owner1.lastName}`);
+  console.log(
+    `Created ${owner1VehicleData.length} vehicles for ${owner1.firstName} ${owner1.lastName}`,
+  );
 
   // Owner 2 Vehicles (Sivakumar - Jaffna) - 3 Vehicles
-  const owner2Vehicles = [
+  const owner2VehicleData = [
     {
       name: "Ashok Leyland Lynx AC Coach",
-      description: "Modern AC coach for comfortable travel across Northern Province. Ideal for temple visits and cultural tours.",
+      description:
+        "Modern AC coach for comfortable travel across Northern Province. Ideal for temple visits and cultural tours.",
       type: "BUS" as const,
       brand: "Ashok Leyland",
       model: "Lynx",
@@ -457,7 +499,13 @@ async function main() {
       acType: "FULL_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
-      features: ["Full AC", "Reclining Seats", "Curtains", "PA System", "Cool Box"],
+      features: [
+        "Full AC",
+        "Reclining Seats",
+        "Curtains",
+        "PA System",
+        "Cool Box",
+      ],
       pricePerDay: 30000,
       pricePerKm: 75,
       location: "Jaffna",
@@ -467,7 +515,8 @@ async function main() {
     },
     {
       name: "TATA Starbus Standard",
-      description: "Economical option for budget-conscious travelers. Well-maintained and reliable for local trips.",
+      description:
+        "Economical option for budget-conscious travelers. Well-maintained and reliable for local trips.",
       type: "BUS" as const,
       brand: "TATA",
       model: "Starbus",
@@ -487,7 +536,8 @@ async function main() {
     },
     {
       name: "Mitsubishi Rosa Deluxe",
-      description: "Premium mini bus with extra legroom. Perfect for VIP transport and small corporate groups.",
+      description:
+        "Premium mini bus with extra legroom. Perfect for VIP transport and small corporate groups.",
       type: "MINI_BUS" as const,
       brand: "Mitsubishi",
       model: "Rosa",
@@ -497,7 +547,14 @@ async function main() {
       acType: "FULL_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "AUTOMATIC" as const,
-      features: ["Full AC", "Leather Seats", "Tinted Windows", "Mini Fridge", "WiFi", "TV"],
+      features: [
+        "Full AC",
+        "Leather Seats",
+        "Tinted Windows",
+        "Mini Fridge",
+        "WiFi",
+        "TV",
+      ],
       pricePerDay: 25000,
       pricePerKm: 65,
       location: "Jaffna",
@@ -507,7 +564,7 @@ async function main() {
     },
   ];
 
-  for (const vehicleData of owner2Vehicles) {
+  for (const vehicleData of owner2VehicleData) {
     const coords = LOCATIONS[vehicleData.location];
     await prisma.vehicle.create({
       data: {
@@ -537,13 +594,16 @@ async function main() {
       },
     });
   }
-  console.log(`Created ${owner2Vehicles.length} vehicles for ${owner2.firstName} ${owner2.lastName}`);
+  console.log(
+    `Created ${owner2VehicleData.length} vehicles for ${owner2.firstName} ${owner2.lastName}`,
+  );
 
   // Owner 3 Vehicles (Chaminda - Kandy) - 3 Vehicles
-  const owner3Vehicles = [
+  const owner3VehicleData = [
     {
       name: "Hino RK8J Tourist Coach",
-      description: "Japanese-built tourist coach with panoramic windows. Ideal for hill country tours and scenic routes.",
+      description:
+        "Japanese-built tourist coach with panoramic windows. Ideal for hill country tours and scenic routes.",
       type: "BUS" as const,
       brand: "Hino",
       model: "RK8J",
@@ -553,7 +613,14 @@ async function main() {
       acType: "FULL_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
-      features: ["Panoramic Windows", "Full AC", "Reclining Seats", "Tour Guide Mic", "Cool Box", "USB Charging"],
+      features: [
+        "Panoramic Windows",
+        "Full AC",
+        "Reclining Seats",
+        "Tour Guide Mic",
+        "Cool Box",
+        "USB Charging",
+      ],
       pricePerDay: 32000,
       pricePerKm: 80,
       location: "Kandy",
@@ -563,7 +630,8 @@ async function main() {
     },
     {
       name: "Toyota HiAce Commuter",
-      description: "Versatile commuter van perfect for small groups exploring Kandy and surrounding areas.",
+      description:
+        "Versatile commuter van perfect for small groups exploring Kandy and surrounding areas.",
       type: "VAN" as const,
       brand: "Toyota",
       model: "HiAce",
@@ -573,7 +641,12 @@ async function main() {
       acType: "FULL_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "AUTOMATIC" as const,
-      features: ["Full AC", "Comfortable Seats", "Luggage Space", "USB Charging"],
+      features: [
+        "Full AC",
+        "Comfortable Seats",
+        "Luggage Space",
+        "USB Charging",
+      ],
       pricePerDay: 18000,
       pricePerKm: 55,
       location: "Kandy",
@@ -583,7 +656,8 @@ async function main() {
     },
     {
       name: "Nissan Civilian Pilgrim Bus",
-      description: "Specially equipped for religious pilgrimages with ample space for offerings and luggage.",
+      description:
+        "Specially equipped for religious pilgrimages with ample space for offerings and luggage.",
       type: "BUS" as const,
       brand: "Nissan",
       model: "Civilian",
@@ -593,7 +667,13 @@ async function main() {
       acType: "SEMI_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
-      features: ["Semi AC", "Extra Luggage Space", "PA System", "DVD Player", "Curtains"],
+      features: [
+        "Semi AC",
+        "Extra Luggage Space",
+        "PA System",
+        "DVD Player",
+        "Curtains",
+      ],
       pricePerDay: 20000,
       pricePerKm: 55,
       location: "Kandy",
@@ -603,7 +683,7 @@ async function main() {
     },
   ];
 
-  for (const vehicleData of owner3Vehicles) {
+  for (const vehicleData of owner3VehicleData) {
     const coords = LOCATIONS[vehicleData.location];
     await prisma.vehicle.create({
       data: {
@@ -633,13 +713,16 @@ async function main() {
       },
     });
   }
-  console.log(`Created ${owner3Vehicles.length} vehicles for ${owner3.firstName} ${owner3.lastName}`);
+  console.log(
+    `Created ${owner3VehicleData.length} vehicles for ${owner3.firstName} ${owner3.lastName}`,
+  );
 
   // Owner 4 Vehicles (Mohamed Farook - Batticaloa) - 2 Vehicles
-  const owner4Vehicles = [
+  const owner4VehicleData = [
     {
       name: "TATA LP913 Eastern Express",
-      description: "Reliable bus for Eastern Province travel. Regular service to Colombo and back.",
+      description:
+        "Reliable bus for Eastern Province travel. Regular service to Colombo and back.",
       type: "BUS" as const,
       brand: "TATA",
       model: "LP913",
@@ -649,7 +732,12 @@ async function main() {
       acType: "SEMI_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
-      features: ["Semi AC", "Reclining Seats", "Luggage Compartment", "Mobile Charging"],
+      features: [
+        "Semi AC",
+        "Reclining Seats",
+        "Luggage Compartment",
+        "Mobile Charging",
+      ],
       pricePerDay: 25000,
       pricePerKm: 65,
       location: "Batticaloa",
@@ -659,7 +747,8 @@ async function main() {
     },
     {
       name: "Isuzu NPR Mini Coach",
-      description: "Compact coach ideal for local tours and wedding transport in the Eastern region.",
+      description:
+        "Compact coach ideal for local tours and wedding transport in the Eastern region.",
       type: "MINI_BUS" as const,
       brand: "Isuzu",
       model: "NPR",
@@ -679,7 +768,7 @@ async function main() {
     },
   ];
 
-  for (const vehicleData of owner4Vehicles) {
+  for (const vehicleData of owner4VehicleData) {
     const coords = LOCATIONS[vehicleData.location];
     await prisma.vehicle.create({
       data: {
@@ -709,13 +798,16 @@ async function main() {
       },
     });
   }
-  console.log(`Created ${owner4Vehicles.length} vehicles for ${owner4.firstName} ${owner4.lastName}`);
+  console.log(
+    `Created ${owner4VehicleData.length} vehicles for ${owner4.firstName} ${owner4.lastName}`,
+  );
 
   // Owner 5 Vehicles (Kasun Fernando - Galle, Pending Verification) - 2 Vehicles (inactive)
-  const owner5Vehicles = [
+  const owner5VehicleData = [
     {
       name: "Ashok Leyland Boss Super Luxury",
-      description: "Brand new super luxury coach with premium amenities. Currently pending verification.",
+      description:
+        "Brand new super luxury coach with premium amenities. Currently pending verification.",
       type: "BUS" as const,
       brand: "Ashok Leyland",
       model: "Boss",
@@ -725,7 +817,14 @@ async function main() {
       acType: "FULL_AC" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
-      features: ["Super AC", "Leather Reclining Seats", "Personal Screens", "WiFi", "Refreshments", "Toilet"],
+      features: [
+        "Super AC",
+        "Leather Reclining Seats",
+        "Personal Screens",
+        "WiFi",
+        "Refreshments",
+        "Toilet",
+      ],
       pricePerDay: 45000,
       pricePerKm: 100,
       location: "Galle",
@@ -735,7 +834,8 @@ async function main() {
     },
     {
       name: "BYD K9 Electric Coach",
-      description: "Eco-friendly electric bus for sustainable tourism. Zero emissions, quiet operation.",
+      description:
+        "Eco-friendly electric bus for sustainable tourism. Zero emissions, quiet operation.",
       type: "BUS" as const,
       brand: "BYD",
       model: "K9",
@@ -745,7 +845,14 @@ async function main() {
       acType: "FULL_AC" as const,
       fuelType: "ELECTRIC" as const,
       transmission: "AUTOMATIC" as const,
-      features: ["Full AC", "Zero Emissions", "Quiet Ride", "USB Charging", "WiFi", "Large Windows"],
+      features: [
+        "Full AC",
+        "Zero Emissions",
+        "Quiet Ride",
+        "USB Charging",
+        "WiFi",
+        "Large Windows",
+      ],
       pricePerDay: 40000,
       pricePerKm: 90,
       location: "Galle",
@@ -755,7 +862,7 @@ async function main() {
     },
   ];
 
-  for (const vehicleData of owner5Vehicles) {
+  for (const vehicleData of owner5VehicleData) {
     const coords = LOCATIONS[vehicleData.location];
     await prisma.vehicle.create({
       data: {
@@ -785,9 +892,342 @@ async function main() {
       },
     });
   }
-  console.log(`Created ${owner5Vehicles.length} vehicles for ${owner5.firstName} ${owner5.lastName} (Pending)`);
+  console.log(
+    `Created ${owner5VehicleData.length} vehicles for ${owner5.firstName} ${owner5.lastName} (Pending)`,
+  );
 
-  const totalVehicles = owner1Vehicles.length + owner2Vehicles.length + owner3Vehicles.length + owner4Vehicles.length + owner5Vehicles.length;
+  // ===========================================
+  // Create sample bookings for demo data
+  // ===========================================
+  console.log("Creating sample bookings...\n");
+
+  // Get all vehicles for each owner to create multiple bookings
+  const owner1Vehicles = await prisma.vehicle.findMany({
+    where: { ownerId: owner1.id },
+    take: 3,
+  });
+
+  const owner2Vehicles = await prisma.vehicle.findMany({
+    where: { ownerId: owner2.id },
+    take: 3,
+  });
+
+  const owner3Vehicles = await prisma.vehicle.findMany({
+    where: { ownerId: owner3.id },
+    take: 3,
+  });
+
+  const owner4Vehicles = await prisma.vehicle.findMany({
+    where: { ownerId: owner4.id },
+    take: 2,
+  });
+
+  let totalBookings = 0;
+
+  // OWNER 1 BOOKINGS (Nuwan Perera - Colombo)
+  if (owner1Vehicles.length > 0) {
+    // Confirmed booking - upcoming
+    const booking1 = await prisma.booking.create({
+      data: {
+        customerId: customer1.id,
+        vehicleId: owner1Vehicles[0].id,
+        startDate: new Date("2026-01-25T06:00:00.000Z"),
+        endDate: new Date("2026-01-27T18:00:00.000Z"),
+        pickupLocation: "Colombo - Fort Railway Station",
+        dropoffLocation: "Nuwara Eliya - Grand Hotel",
+        totalPassengers: 40,
+        totalAmount: 150000,
+        status: "CONFIRMED",
+        notes: "Corporate tour with 40 employees",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer1.id,
+        bookingId: booking1.id,
+        amount: 150000,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    totalBookings++;
+
+    // Pending booking - awaiting confirmation
+    await prisma.booking.create({
+      data: {
+        customerId: customer2.id,
+        vehicleId: owner1Vehicles[1].id,
+        startDate: new Date("2026-02-05T08:00:00.000Z"),
+        endDate: new Date("2026-02-07T20:00:00.000Z"),
+        pickupLocation: "Colombo - Cinnamon Grand Hotel",
+        dropoffLocation: "Galle - Lighthouse Hotel",
+        totalPassengers: 50,
+        totalAmount: 95000,
+        status: "PENDING",
+        notes: "Wedding party transport",
+      },
+    });
+    totalBookings++;
+
+    // Completed booking - past trip
+    const booking3 = await prisma.booking.create({
+      data: {
+        customerId: customer3.id,
+        vehicleId: owner1Vehicles[0].id,
+        startDate: new Date("2025-12-15T06:00:00.000Z"),
+        endDate: new Date("2025-12-18T18:00:00.000Z"),
+        pickupLocation: "Colombo Airport",
+        dropoffLocation: "Colombo Airport",
+        totalPassengers: 35,
+        totalAmount: 120000,
+        status: "COMPLETED",
+        notes: "Airport shuttle and city tour",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer3.id,
+        bookingId: booking3.id,
+        amount: 120000,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    totalBookings++;
+
+    // Cancelled booking
+    await prisma.booking.create({
+      data: {
+        customerId: customer1.id,
+        vehicleId: owner1Vehicles[2].id,
+        startDate: new Date("2026-01-22T10:00:00.000Z"),
+        endDate: new Date("2026-01-22T18:00:00.000Z"),
+        pickupLocation: "Colombo - Slave Island",
+        dropoffLocation: "Kandy",
+        totalPassengers: 25,
+        totalAmount: 45000,
+        status: "CANCELLED",
+        notes: "Customer cancelled due to schedule change",
+      },
+    });
+    totalBookings++;
+  }
+
+  // OWNER 2 BOOKINGS (Sivakumar - Jaffna)
+  if (owner2Vehicles.length > 0) {
+    // Confirmed booking
+    const booking5 = await prisma.booking.create({
+      data: {
+        customerId: customer2.id,
+        vehicleId: owner2Vehicles[0].id,
+        startDate: new Date("2026-02-10T08:00:00.000Z"),
+        endDate: new Date("2026-02-10T18:00:00.000Z"),
+        pickupLocation: "Jaffna - Railway Station",
+        dropoffLocation: "Nallur Kandaswamy Kovil",
+        totalPassengers: 45,
+        totalAmount: 35000,
+        status: "CONFIRMED",
+        notes: "Temple pilgrimage group",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer2.id,
+        bookingId: booking5.id,
+        amount: 35000,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    totalBookings++;
+
+    // Pending booking
+    await prisma.booking.create({
+      data: {
+        customerId: customer3.id,
+        vehicleId: owner2Vehicles[1].id,
+        startDate: new Date("2026-01-28T06:00:00.000Z"),
+        endDate: new Date("2026-01-30T20:00:00.000Z"),
+        pickupLocation: "Jaffna - City Center",
+        dropoffLocation: "Trincomalee Beach",
+        totalPassengers: 30,
+        totalAmount: 85000,
+        status: "PENDING",
+        notes: "Family vacation to eastern beaches",
+      },
+    });
+    totalBookings++;
+
+    // Completed booking
+    const booking7 = await prisma.booking.create({
+      data: {
+        customerId: customer1.id,
+        vehicleId: owner2Vehicles[0].id,
+        startDate: new Date("2026-01-10T08:00:00.000Z"),
+        endDate: new Date("2026-01-12T18:00:00.000Z"),
+        pickupLocation: "Jaffna",
+        dropoffLocation: "Jaffna",
+        totalPassengers: 40,
+        totalAmount: 75000,
+        status: "COMPLETED",
+        notes: "Northern heritage tour",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer1.id,
+        bookingId: booking7.id,
+        amount: 75000,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    totalBookings++;
+  }
+
+  // OWNER 3 BOOKINGS (Chaminda - Kandy)
+  if (owner3Vehicles.length > 0) {
+    // Confirmed booking
+    const booking8 = await prisma.booking.create({
+      data: {
+        customerId: customer3.id,
+        vehicleId: owner3Vehicles[0].id,
+        startDate: new Date("2026-01-30T06:00:00.000Z"),
+        endDate: new Date("2026-02-01T18:00:00.000Z"),
+        pickupLocation: "Kandy - City Center",
+        dropoffLocation: "Ella - Railway Station",
+        totalPassengers: 38,
+        totalAmount: 95000,
+        status: "CONFIRMED",
+        notes: "Hill country scenic tour",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer3.id,
+        bookingId: booking8.id,
+        amount: 95000,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    totalBookings++;
+
+    // Completed booking
+    const booking9 = await prisma.booking.create({
+      data: {
+        customerId: customer2.id,
+        vehicleId: owner3Vehicles[1].id,
+        startDate: new Date("2025-12-20T06:00:00.000Z"),
+        endDate: new Date("2025-12-22T20:00:00.000Z"),
+        pickupLocation: "Kandy - Temple of the Tooth",
+        dropoffLocation: "Nuwara Eliya - Victoria Park",
+        totalPassengers: 12,
+        totalAmount: 65000,
+        status: "COMPLETED",
+        notes: "Year-end family trip",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer2.id,
+        bookingId: booking9.id,
+        amount: 65000,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    totalBookings++;
+
+    // Ongoing booking - currently in progress
+    await prisma.booking.create({
+      data: {
+        customerId: customer1.id,
+        vehicleId: owner3Vehicles[2].id,
+        startDate: new Date("2026-01-19T06:00:00.000Z"),
+        endDate: new Date("2026-01-21T18:00:00.000Z"),
+        pickupLocation: "Kandy",
+        dropoffLocation: "Sigiriya",
+        totalPassengers: 28,
+        totalAmount: 55000,
+        status: "ONGOING",
+        notes: "Cultural triangle tour",
+      },
+    });
+    totalBookings++;
+  }
+
+  // OWNER 4 BOOKINGS (Mohamed Farook - Batticaloa)
+  if (owner4Vehicles.length > 0) {
+    // Confirmed booking
+    const booking11 = await prisma.booking.create({
+      data: {
+        customerId: customer1.id,
+        vehicleId: owner4Vehicles[0].id,
+        startDate: new Date("2026-02-15T06:00:00.000Z"),
+        endDate: new Date("2026-02-17T18:00:00.000Z"),
+        pickupLocation: "Batticaloa - Bus Stand",
+        dropoffLocation: "Colombo - Fort",
+        totalPassengers: 48,
+        totalAmount: 70000,
+        status: "CONFIRMED",
+        notes: "Business trip to Colombo",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer1.id,
+        bookingId: booking11.id,
+        amount: 70000,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    totalBookings++;
+
+    // Completed booking
+    const booking12 = await prisma.booking.create({
+      data: {
+        customerId: customer3.id,
+        vehicleId: owner4Vehicles[1].id,
+        startDate: new Date("2026-01-05T08:00:00.000Z"),
+        endDate: new Date("2026-01-07T18:00:00.000Z"),
+        pickupLocation: "Batticaloa",
+        dropoffLocation: "Arugam Bay",
+        totalPassengers: 20,
+        totalAmount: 45000,
+        status: "COMPLETED",
+        notes: "Surfing trip",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer3.id,
+        bookingId: booking12.id,
+        amount: 45000,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    totalBookings++;
+  }
+
+  console.log(`Created ${totalBookings} bookings across all owners\n`);
+
+  const totalVehicles =
+    owner1VehicleData.length +
+    owner2VehicleData.length +
+    owner3VehicleData.length +
+    owner4VehicleData.length +
+    owner5VehicleData.length;
 
   // ===========================================
   // Summary
@@ -800,6 +1240,7 @@ async function main() {
   console.log(`   • Bus owners: ${owners.length}`);
   console.log(`   • Customers: 3`);
   console.log(`   • Total vehicles: ${totalVehicles}`);
+  console.log(`   • Total bookings: ${totalBookings}`);
   console.log("\nLogin Credentials:");
   console.log("   Admin:    admin@travenest.lk / admin@123");
   console.log("   Owner 1:  nuwan.perera@gmail.com / owner@123");
