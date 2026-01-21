@@ -235,9 +235,7 @@ class ApiClient {
     // Only refresh if token is expiring soon and not already refreshing
     if (this.isTokenExpiringSoon(token) && !isRefreshing) {
       try {
-        console.log("[TokenRefresh] Token expiring soon, refreshing...");
         await this.handleTokenRefresh();
-        console.log("[TokenRefresh] Token refreshed successfully");
       } catch (error) {
         console.error("[TokenRefresh] Failed to refresh token:", error);
         this.stopTokenRefresh();

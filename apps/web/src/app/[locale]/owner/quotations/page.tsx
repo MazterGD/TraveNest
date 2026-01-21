@@ -97,6 +97,13 @@ export default function QuotationRequestsPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
+                <Link
+                  href={`/${locale}/owner/quotations/sent`}
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <FaFileAlt className="h-4 w-4" />
+                  Sent Quotations
+                </Link>
                 {tabCounts.new > 0 && (
                   <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-white">
                     {tabCounts.new} New
@@ -272,7 +279,7 @@ export default function QuotationRequestsPage() {
 
                   <div className="flex gap-3">
                     <Link
-                      href={`/owner/quotations/${request.id}/send`}
+                      href={`/${locale}/owner/quotations/send/${request.id}`}
                       className="flex-1 rounded-lg bg-gray-900 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-gray-800"
                     >
                       Send Quotation
